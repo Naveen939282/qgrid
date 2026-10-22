@@ -1,0 +1,64 @@
+{
+  "experiment_type": "noise_comparison",
+  "instance": "tiny_2job_2server",
+  "qaoa_depth": 2,
+  "optimizer": "COBYLA",
+  "maxiter": 50,
+  "seed": 42,
+  "n_vars": 11,
+  "n_shots": 512,
+  "exact_objective": 5.0,
+  "noise_model": "depolarizing",
+  "noise_params": {
+    "p_1q": 0.01,
+    "p_2q": 0.02
+  },
+  "noisy_gates": [
+    "h",
+    "rx",
+    "rz",
+    "rzz"
+  ],
+  "package_versions": {
+    "qiskit": "2.6.0",
+    "qiskit-aer": "0.17.2"
+  },
+  "results": {
+    "noiseless_aer": {
+      "best_feasible_objective": 5.0,
+      "best_feasible_energy": 160.0,
+      "best_energy_bitstring": "01011011100",
+      "best_energy": 6.0,
+      "best_feasible_assignment": {
+        "0": 1,
+        "1": 0
+      },
+      "feasible_sample_fraction": 0.501953125,
+      "status": "success",
+      "sampler_type": "aer",
+      "effective_maxiter": 50,
+      "n_unique_bitstrings": 325,
+      "actual_shots": 512,
+      "runtime_seconds": 1.331211800003075,
+      "is_single_trial": true
+    },
+    "noisy_aer": {
+      "best_feasible_objective": 5.0,
+      "best_feasible_energy": 1300.0,
+      "best_energy_bitstring": "01101011100",
+      "best_energy": 21.0,
+      "best_feasible_assignment": {
+        "0": 1,
+        "1": 0
+      },
+      "feasible_sample_fraction": 0.546875,
+      "status": "success",
+      "sampler_type": "aer",
+      "effective_maxiter": 50,
+      "n_unique_bitstrings": 435,
+      "actual_shots": 512,
+      "runtime_seconds": 1.543409400008386,
+      "is_single_trial": true
+    }
+  }
+}

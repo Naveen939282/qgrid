@@ -1,0 +1,81 @@
+{
+  "experiment_type": "finite_shot",
+  "instance": "tiny_2job_2server",
+  "qaoa_depth": 2,
+  "optimizer": "COBYLA",
+  "maxiter": 50,
+  "seed": 42,
+  "n_vars": 11,
+  "n_shots_budgets": [
+    128,
+    512,
+    2048
+  ],
+  "exact_objective": 5.0,
+  "package_versions": {
+    "qiskit": "2.6.0",
+    "qiskit-aer": "0.17.2"
+  },
+  "results": [
+    {
+      "n_shots_requested": 128,
+      "actual_shots": 128,
+      "seed": 42,
+      "best_feasible_objective": 5.0,
+      "best_feasible_energy": 560.0,
+      "best_energy_bitstring": "10010000011",
+      "best_energy": 23.0,
+      "best_feasible_assignment": {
+        "1": 0,
+        "0": 1
+      },
+      "feasible_sample_fraction": 0.578125,
+      "status": "success",
+      "effective_maxiter": 50,
+      "sampler_type": "statevector",
+      "runtime_seconds": 12.92282599999453,
+      "n_unique_bitstrings": 122,
+      "is_single_trial": true
+    },
+    {
+      "n_shots_requested": 512,
+      "actual_shots": 512,
+      "seed": 42,
+      "best_feasible_objective": 5.0,
+      "best_feasible_energy": 200.0,
+      "best_energy_bitstring": "01011011100",
+      "best_energy": 6.0,
+      "best_feasible_assignment": {
+        "1": 0,
+        "0": 1
+      },
+      "feasible_sample_fraction": 0.486328125,
+      "status": "success",
+      "effective_maxiter": 50,
+      "sampler_type": "statevector",
+      "runtime_seconds": 1.3856070000038017,
+      "n_unique_bitstrings": 346,
+      "is_single_trial": true
+    },
+    {
+      "n_shots_requested": 2048,
+      "actual_shots": 2048,
+      "seed": 42,
+      "best_feasible_objective": 5.0,
+      "best_feasible_energy": 775.0,
+      "best_energy_bitstring": "01011011100",
+      "best_energy": 6.0,
+      "best_feasible_assignment": {
+        "0": 1,
+        "1": 0
+      },
+      "feasible_sample_fraction": 0.51220703125,
+      "status": "success",
+      "effective_maxiter": 50,
+      "sampler_type": "statevector",
+      "runtime_seconds": 2.30587930000911,
+      "n_unique_bitstrings": 796,
+      "is_single_trial": true
+    }
+  ]
+}
