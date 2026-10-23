@@ -1,4 +1,0 @@
-  File "<string>", line 1
-    from qgrid.formulation import encode_qubo; print('Import ok'); inst = type('I', (), {'n_jobs': 2, 'n_servers': 2, 'job_demands': [3.0, 2.0], 'server_capacities': [5.0, 10.0], 'eligible_jobs': [frozenset({0, 1}), frozenset({0, 1})], 'energy_costs': {(0,0): 5.0, (0,1): 3.0, (1,0): 2.0, (1,1): 4.0)})(); print('Instance created')
-                                                                                                                                                                                                                                                                                                           ^
-SyntaxError: closing parenthesis ')' does not match opening parenthesis '{'

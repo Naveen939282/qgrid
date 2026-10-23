@@ -22,3 +22,8 @@ htmlcov/
 build/
 dist/
 *.egg-info/
+
+# Debug / output artifacts
+output.txt
+output*.txt
+*.log
