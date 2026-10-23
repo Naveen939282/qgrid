@@ -78,6 +78,7 @@ class QAOAResult:
     all_samples: List[Tuple[str, int]] = field(default_factory=list)
     sampler_type: str = "statevector"
     effective_maxiter: int = 0
+    noise_info: Dict[str, list] = field(default_factory=dict)
 
 
 
@@ -382,10 +383,38 @@ def solve_qaoa(
     qc_final = qc_template.assign_parameters(param_dict)
     qc_final.measure_all()
 
+    transpile_basis_gates = ["id", "rz", "sx", "x", "cx", "rzz", "measure"]
+    circuit_gates_info: Dict[str, int] = {}
+
     if sampler_type == "aer":
+        from qiskit import transpile
         from qiskit_aer import AerSimulator
-        sim = AerSimulator(noise_model=aer_noise_model)
-        job = sim.run(qc_final, shots=n_shots, seed_simulator=seed, seed_transpiler=seed)
+
+        # Explicitly transpile to a known basis gate set so that noise
+        # channels apply to the correct gate instructions.  Using Aer's
+        # default basis would decompose rz/rx to u-gates and silently
+        # drop any noise attached to those gates.
+        #
+        # Basis: id, rz, sx, x, cx, rzz, measure
+        #   - rz  : preserved natively (cost layer Z rotations)
+        #   - rx  : decomposed to rz-sx-rz sequence
+        #   - h   : decomposed to rz-sx-rz sequence
+        #   - rzz : preserved natively (cost layer ZZ interactions)
+        #
+        # Noise model must cover ALL gates that appear after transpilation,
+        # not just the original QAOA gate names.
+        qc_transpiled = transpile(
+            qc_final,
+            basis_gates=transpile_basis_gates,
+            seed_transpiler=seed,
+            optimization_level=0,
+        )
+        circuit_gates_info = dict(qc_transpiled.count_ops())
+        sim = AerSimulator(
+            noise_model=aer_noise_model,
+            basis_gates=transpile_basis_gates,
+        )
+        job = sim.run(qc_transpiled, shots=n_shots, seed_simulator=seed, seed_transpiler=seed)
         counts = job.result().get_counts()
     else:
         sampler = StatevectorSampler(seed=seed)
@@ -412,7 +441,11 @@ def solve_qaoa(
 
     for bitstring in counts:
         x = _bitstring_to_vector(bitstring, qubo.n_vars)
-        assignment, slack = decode_solution(x, qubo)
+        try:
+            assignment, slack = decode_solution(x, qubo)
+        except ValueError:
+            # Invalid encoding: duplicate job assignments — treat as infeasible
+            continue
 
         # Skip bitstrings with no assignments (empty dict)
         if not assignment:
@@ -452,6 +485,10 @@ def solve_qaoa(
         all_samples=all_samples,
         sampler_type=sampler_type,
         effective_maxiter=cobyla_maxfun,
+        noise_info={
+            "basis_gates": transpile_basis_gates,
+            "circuit_gates": circuit_gates_info,
+        },
     )
 
 

@@ -34,7 +34,22 @@ def build_tiny_instance() -> JobAssignmentInstance:
 
 
 def build_noise_model(p_1q: float = 0.01, p_2q: float = 0.02) -> NoiseModel:
-    """Build a depolarizing noise model.
+    """Build a depolarizing noise model with gates matching Aer's transpiled basis.
+
+    The noise model must cover ALL gates that appear in the transpiled circuit,
+    not just the original QAOA gate names.  When AerSimulator transpiles a QAOA
+    circuit using the shared basis set ['id', 'rz', 'sx', 'x', 'cx', 'rzz',
+    'measure'], the following decompositions occur:
+
+      - ``rz`` : preserved (cost-layer Z rotations)
+      - ``rx`` → decomposed to ``rz-sx-rz`` sequence
+      - ``h``  → decomposed to ``rz-sx-rz`` sequence
+      - ``rzz``: preserved (cost-layer ZZ interactions)
+      - ``cx`` : used for multi-qubit operations
+
+    Therefore noise is attached to:
+      - Single-qubit: ``rz``, ``sx`` (covers decomposed rx/rz/h)
+      - Two-qubit:     ``rzz``, ``cx``
 
     Parameters
     ----------
@@ -46,11 +61,13 @@ def build_noise_model(p_1q: float = 0.01, p_2q: float = 0.02) -> NoiseModel:
     Returns
     -------
     NoiseModel
-        A Qiskit Aer noise model with depolarizing errors on all gates.
+        A Qiskit Aer noise model with depolarizing errors on all transpiled gates.
     """
-    noise = NoiseModel()
-    noise.add_all_qubit_quantum_error(depolarizing_error(p_1q, 1), ["h", "rx", "rz"])
-    noise.add_all_qubit_quantum_error(depolarizing_error(p_2q, 2), ["rzz"])
+    # Basis gates must match the transpile_basis_gates used in QAOASolver.__call__.
+    basis_gates = ["id", "rz", "sx", "x", "cx", "rzz", "measure"]
+    noise = NoiseModel(basis_gates=basis_gates)
+    noise.add_all_qubit_quantum_error(depolarizing_error(p_1q, 1), ["rz", "sx"])
+    noise.add_all_qubit_quantum_error(depolarizing_error(p_2q, 2), ["rzz", "cx"])
     return noise
 
 
@@ -201,7 +218,8 @@ def run_noise_experiment() -> dict:
         "exact_objective": exact_objective,
         "noise_model": "depolarizing",
         "noise_params": {"p_1q": p_1q, "p_2q": p_2q},
-        "noisy_gates": ["h", "rx", "rz", "rzz"],
+        "noisy_gates": ["rz", "sx", "rzz", "cx"],
+        "noise_basis_gates": ["id", "rz", "sx", "x", "cx", "rzz", "measure"],
         "package_versions": {
             "qiskit": _get_qiskit_version(),
             "qiskit-aer": _get_aer_version(),
@@ -274,7 +292,8 @@ def run_noise_distribution_check() -> dict:
         "n_trials": 10,
         "noise_model": "depolarizing",
         "noise_params": {"p_1q": 0.02, "p_2q": 0.05},
-        "noisy_gates": ["h", "rx", "rz", "rzz"],
+        "noisy_gates": ["rz", "sx", "rzz", "cx"],
+        "noise_basis_gates": ["id", "rz", "sx", "x", "cx", "rzz", "measure"],
         "package_versions": {
             "qiskit": _get_qiskit_version(),
             "qiskit-aer": _get_aer_version(),

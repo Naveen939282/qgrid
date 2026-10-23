@@ -13,7 +13,7 @@ from __future__ import annotations
 import json
 import time
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -46,7 +46,14 @@ def serialize_instance(
 
     Captures the complete instance definition including job demands,
     server capacities, eligibility restrictions, and energy costs.
+    Also records QUBO formulation resource counts (n_qubo_variables,
+    n_slack_bits) for sizing context.
     """
+    qubo = encode_qubo(instance)
+    n_qubo_vars = qubo.n_vars
+    n_assignment_bits = instance.n_jobs * instance.n_servers
+    n_slack_bits = n_qubo_vars - n_assignment_bits
+
     return {
         "name": name,
         "n_jobs": instance.n_jobs,
@@ -59,6 +66,11 @@ def serialize_instance(
         "energy_costs": {
             f"({s},{j})": float(cost)
             for (s, j), cost in instance.energy_costs.items()
+        },
+        "qubo_resources": {
+            "n_qubo_variables": n_qubo_vars,
+            "n_assignment_bits": n_assignment_bits,
+            "n_slack_bits": n_slack_bits,
         },
     }
 
@@ -356,6 +368,77 @@ def greedy_fails_instance() -> JobAssignmentInstance:
     )
 
 
+def asymmetric_3job_3server_instance() -> JobAssignmentInstance:
+    """3-job, 3-server instance with asymmetric eligibility and costs.
+
+    Server 0: capacity 5, eligible for all jobs; costs 5, 4, 6
+    Server 1: capacity 6, eligible for jobs {0, 1}; costs 3, 2
+    Server 2: capacity 7, eligible for all jobs; costs 7, 8, 1
+
+    Exact optimum: 6.0 (job 0 → server 1, job 1 → server 1, job 2 → server 2)
+    Capacity check: 2+3=5 ≤ 6; 1 ≤ 7. Total demand 6 ≤ total capacity 18.
+    """
+    return JobAssignmentInstance(
+        n_jobs=3,
+        n_servers=3,
+        job_demands=[2.0, 3.0, 1.0],
+        server_capacities=[5.0, 6.0, 7.0],
+        eligible_jobs=[
+            frozenset({0, 1, 2}),
+            frozenset({0, 1}),
+            frozenset({0, 1, 2}),
+        ],
+        energy_costs={
+            (0, 0): 5.0, (0, 1): 4.0, (0, 2): 6.0,
+            (1, 0): 3.0, (1, 1): 2.0,
+            (2, 0): 7.0, (2, 1): 8.0, (2, 2): 1.0,
+        },
+    )
+
+
+def tight_capacity_3job_2server_instance() -> JobAssignmentInstance:
+    """3-job, 2-server instance with tight capacities.
+
+    Each server has capacity 5; total demand = 7 (fits exactly).
+    Jobs: demand 3, 2, 2; all eligible on both servers.
+
+    Exact optimum: 6.0 (job 0 → server 1, job 1 → server 0, job 2 → server 1)
+    Capacity check: server 0: 2 ≤ 5; server 1: 3+2=5 ≤ 5.
+    """
+    return JobAssignmentInstance(
+        n_jobs=3,
+        n_servers=2,
+        job_demands=[3.0, 2.0, 2.0],
+        server_capacities=[5.0, 5.0],
+        eligible_jobs=[frozenset({0, 1, 2}), frozenset({0, 1, 2})],
+        energy_costs={
+            (0, 0): 4.0, (0, 1): 3.0, (0, 2): 5.0,
+            (1, 0): 2.0, (1, 1): 5.0, (1, 2): 1.0,
+        },
+    )
+
+
+def cost_asymmetry_2job_2server_instance() -> JobAssignmentInstance:
+    """2-job, 2-server instance with extreme cost asymmetry.
+
+    Job 0: demand 4, only fits on server 0 (cap 4) or server 1 (cap 5)
+    Job 1: demand 1, fits on either server
+
+    Exact optimum: 3.0 (job 0 → server 0: cost 1, job 1 → server 1: cost 2)
+    """
+    return JobAssignmentInstance(
+        n_jobs=2,
+        n_servers=2,
+        job_demands=[4.0, 1.0],
+        server_capacities=[4.0, 5.0],
+        eligible_jobs=[frozenset({0, 1}), frozenset({0, 1})],
+        energy_costs={
+            (0, 0): 1.0, (0, 1): 8.0,
+            (1, 0): 7.0, (1, 1): 2.0,
+        },
+    )
+
+
 # ---------------------------------------------------------------------------
 # Solver execution wrappers
 # ---------------------------------------------------------------------------
@@ -496,7 +579,11 @@ def _feasible_sample_fraction(
 
     for bitstring, count in samples:
         x = _bitstring_to_vector_local(bitstring, qubo.n_vars)
-        assignment, slack = decode_solution(x, qubo)
+        try:
+            assignment, slack = decode_solution(x, qubo)
+        except ValueError:
+            # Invalid encoding: duplicate job assignments — treat as infeasible
+            continue
         if not assignment:
             continue
         solution = AssignmentSolution(assignment=assignment)
@@ -585,16 +672,84 @@ def _run_exact_objective(
 # Aggregate computation
 # ---------------------------------------------------------------------------
 
+# Default numerical tolerance for matching an exact optimum.
+OPTIMUM_MATCH_TOL = 1e-6
+
+
+def _safe_mean(values: List[float]) -> Optional[float]:
+    """Population mean, or None if empty."""
+    if not values:
+        return None
+    return float(sum(values) / len(values))
+
+
+def _safe_stdev(values: List[float]) -> Optional[float]:
+    """Population standard deviation (divides by N), or None if < 2 values."""
+    if len(values) < 2:
+        return None
+    mean = sum(values) / len(values)
+    variance = sum((v - mean) ** 2 for v in values) / len(values)
+    return float(variance ** 0.5)
+
+
+def _safe_median(values: List[float]) -> Optional[float]:
+    """Median, or None if empty."""
+    if not values:
+        return None
+    s = sorted(values)
+    n = len(s)
+    mid = n // 2
+    if n % 2 == 1:
+        return float(s[mid])
+    return float((s[mid - 1] + s[mid]) / 2.0)
+
+
 def compute_aggregate(
     trials: List[BenchmarkTrial], exact_obj: Optional[float]
 ) -> dict:
     """Compute aggregate statistics for a set of trials.
 
-    For stochastic methods, reports mean and std of trial-level metrics.
-    Preserves raw per-trial values in the returned dict.
+    For stochastic methods, reports mean, median, std, and extreme values
+    of trial-level metrics. Preserves raw per-trial values in the returned dict.
+
+    Denominators:
+        - ``n_attempted``      — all trials for this method (denominator for
+          feasible_rate, matched_optimum_rate, etc.)
+        - ``n_feasible``        — feasible trials with non-null original objective
+          (denominator for feasible-only objective statistics)
+
+    Objective statistics (best/mean/median/worst) are computed over feasible
+    trials only. Missing objectives are never treated as zero.
+
+    Standard deviations use population std (divides by N, not N-1). When
+    fewer than 2 trials are present, std is reported as ``null``.
+
+    A QAOA trial that happens to match the exact optimum is **not** counted
+    as ``proven_optimal_count`` — it only increments
+    ``matched_optimum_count``. ``proven_optimal_count`` is reserved for
+    solvers that assert optimality (e.g. exact, CP-SAT with optimal status).
+
+    Failed trials (status ``"error"`` or ``"unknown"``) are counted in
+    ``n_attempted`` and ``n_failed`` but do not contribute to feasible
+    objective statistics.  All trial records are preserved in raw fields.
+
+    Parameters
+    ----------
+    trials : list of BenchmarkTrial
+        All trials for one instance (one per deterministic solver, one
+        per seed for QAOA).
+    exact_obj : float or None
+        Verified exact optimum (reference for gap and optimum matching).
+
+    Returns
+    -------
+    dict
+        ``"exact_optimum"`` and ``"methods"`` mapping method name to a
+        summary dict with the fields documented above.
     """
     from collections import defaultdict
-    import statistics
+
+    _FAILED_STATUSES = {"error", "unknown"}
 
     aggregate: Dict[str, Any] = {
         "exact_optimum": exact_obj,
@@ -606,38 +761,89 @@ def compute_aggregate(
         by_method[t.method].append(t)
 
     for method, method_trials in by_method.items():
-        method_summary: Dict[str, Any] = {
-            "n_trials": len(method_trials),
-            "raw_objectives": [t.objective for t in method_trials],
-            "raw_runtimes": [t.runtime_seconds for t in method_trials],
-            "raw_feasible": [t.feasible for t in method_trials],
-            "raw_status": [t.status for t in method_trials],
-            "feasible_count": sum(1 for t in method_trials if t.feasible),
-            "feasible_rate": (
-                sum(1 for t in method_trials if t.feasible) / len(method_trials)
-                if method_trials
-                else 0.0
-            ),
-        }
+        n_attempted = len(method_trials)
 
+        n_completed = sum(
+            1 for t in method_trials if t.status not in _FAILED_STATUSES
+        )
+        n_failed = n_attempted - n_completed
+
+        n_feasible = sum(
+            1 for t in method_trials
+            if t.feasible and t.objective is not None
+        )
+        n_feasible_attempted = n_attempted
+
+        feasible_rate = (
+            n_feasible / n_feasible_attempted
+            if n_feasible_attempted
+            else 0.0
+        )
+
+        proven_optimal = sum(1 for t in method_trials if t.is_optimal)
+
+        matched_optimum = 0
+        if exact_obj is not None:
+            for t in method_trials:
+                if t.feasible and t.objective is not None:
+                    if abs(t.objective - exact_obj) <= OPTIMUM_MATCH_TOL:
+                        matched_optimum += 1
+
+        matched_optimum_rate = (
+            matched_optimum / n_feasible_attempted
+            if n_feasible_attempted
+            else 0.0
+        )
+
+        raw_objectives = [t.objective for t in method_trials]
+        all_objs = [
+            t.objective for t in method_trials if t.objective is not None
+        ]
         feasible_objs = [
             t.objective for t in method_trials
             if t.feasible and t.objective is not None
         ]
-        if feasible_objs:
-            method_summary["best_feasible_objective"] = min(feasible_objs)
-        else:
-            method_summary["best_feasible_objective"] = None
 
-        all_objs = [
-            t.objective for t in method_trials if t.objective is not None
-        ]
-        if all_objs:
-            method_summary["best_objective"] = min(all_objs)
-        else:
-            method_summary["best_objective"] = None
+        method_summary: Dict[str, Any] = {
+            "n_attempted": n_attempted,
+            "n_completed": n_completed,
+            "n_failed": n_failed,
+            "n_feasible": n_feasible,
+            "n_feasible_attempted": n_feasible_attempted,
+            "feasible_rate": feasible_rate,
+            "matched_optimum_count": matched_optimum,
+            "matched_optimum_rate": matched_optimum_rate,
+            "proven_optimal_count": proven_optimal,
+            "raw_objectives": raw_objectives,
+            "raw_runtimes": [t.runtime_seconds for t in method_trials],
+            "raw_feasible": [t.feasible for t in method_trials],
+            "raw_status": [t.status for t in method_trials],
+            "raw_seeds": [t.seed for t in method_trials],
+            "best_feasible_objective": min(feasible_objs) if feasible_objs else None,
+            "worst_feasible_objective": max(feasible_objs) if feasible_objs else None,
+            "mean_feasible_objective": _safe_mean(feasible_objs),
+            "median_feasible_objective": _safe_median(feasible_objs),
+            "std_feasible_objective": _safe_stdev(feasible_objs),
+            "n_feasible_objectives": len(feasible_objs),
+            "best_objective": min(all_objs) if all_objs else None,
+            "worst_objective": max(all_objs) if all_objs else None,
+            "mean_objective": _safe_mean(all_objs),
+            "median_objective": _safe_median(all_objs),
+            "std_objective": _safe_stdev(all_objs),
+            "n_objectives": len(all_objs),
+            "runtime_mean": _safe_mean([t.runtime_seconds for t in method_trials]),
+            "runtime_median": _safe_median(
+                [t.runtime_seconds for t in method_trials]
+            ),
+            "runtime_std": _safe_stdev(
+                [t.runtime_seconds for t in method_trials]
+            ),
+        }
 
-        if method_summary["best_feasible_objective"] is not None and exact_obj is not None:
+        if (
+            method_summary["best_feasible_objective"] is not None
+            and exact_obj is not None
+        ):
             method_summary["best_feasible_gap"] = compute_gap(
                 method_summary["best_feasible_objective"], exact_obj
             )
@@ -649,28 +855,8 @@ def compute_aggregate(
                 "note": "No feasible solution or no exact optimum",
             }
 
-        if len(method_trials) > 1:
-            method_summary["objective_mean"] = (
-                statistics.mean(all_objs) if all_objs else None
-            )
-            method_summary["objective_std"] = (
-                statistics.stdev(all_objs) if len(all_objs) > 1 else 0.0
-            )
-            method_summary["runtime_mean"] = statistics.mean(
-                t.runtime_seconds for t in method_trials
-            )
-            method_summary["runtime_std"] = (
-                statistics.stdev(t.runtime_seconds for t in method_trials)
-                if len(method_trials) > 1
-                else 0.0
-            )
-        else:
-            method_summary["objective_mean"] = all_objs[0] if all_objs else None
-            method_summary["objective_std"] = 0.0
-            method_summary["runtime_mean"] = (
-                method_trials[0].runtime_seconds if method_trials else 0.0
-            )
-            method_summary["runtime_std"] = 0.0
+        method_summary["n_trials"] = n_attempted
+        method_summary["feasible_count"] = n_feasible
 
         aggregate["methods"][method] = method_summary
 
@@ -697,6 +883,7 @@ def run_benchmark(config: BenchmarkConfig) -> BenchmarkResult:
 
     now = datetime.now()
     start_timestamp = now.isoformat()
+    utc_start = datetime.now(timezone.utc).isoformat()
 
     instance_def = serialize_instance(config.instance, config.instance_name)
     dep_versions = get_dependency_versions()
@@ -706,6 +893,12 @@ def run_benchmark(config: BenchmarkConfig) -> BenchmarkResult:
         problem, config.instance, config.exact_max_combinations
     )
     exact_obj = exact_result.objective
+
+    # Record verification status of the exact optimum
+    exact_verified = (
+        exact_obj is not None
+        and exact_result.status == "optimal"
+    )
 
     # Run CP-SAT
     cpsat_result = run_cpsat(problem, config.cp_sat_time_limit)
@@ -740,6 +933,8 @@ def run_benchmark(config: BenchmarkConfig) -> BenchmarkResult:
             "maxiter": config.maxiter,
             "cp_sat_time_limit": config.cp_sat_time_limit,
             "exact_max_combinations": config.exact_max_combinations,
+            "exact_optimum_verified": exact_verified,
+            "exact_optimum_status": exact_result.status,
         },
         dependency_versions=dep_versions,
         trials=all_trials,
@@ -747,6 +942,8 @@ def run_benchmark(config: BenchmarkConfig) -> BenchmarkResult:
         timestamps={
             "start": start_timestamp,
             "end": datetime.now().isoformat(),
+            "utc_start": utc_start,
+            "utc_end": datetime.now(timezone.utc).isoformat(),
         },
     )
 

@@ -405,6 +405,13 @@ def decode_solution(
         - assignment: dict mapping job -> server (for assignment vars = 1)
         - slack_values: dict mapping server -> total slack value
           (sum of binary slack vars * their weights, in scaled units)
+
+    Raises
+    ------
+    ValueError
+        If the bitstring encodes multiple servers for the same job
+        (i.e., duplicate assignment variables are active). Such bitstrings
+        are invalid assignment encodings and should be treated as infeasible.
     """
     x = np.asarray(binary_vector)
     assignment: Dict[int, int] = {}
@@ -413,7 +420,15 @@ def decode_solution(
     for i, meta in enumerate(qubo.var_metadata):
         if x[i] == 1:
             if meta["type"] == "assignment":
-                assignment[meta["job"]] = meta["server"]
+                job = meta["job"]
+                server = meta["server"]
+                if job in assignment:
+                    raise ValueError(
+                        f"Bitstring encodes multiple servers for job {job} "
+                        f"(server {assignment[job]} and server {server}). "
+                        f"This is an invalid assignment encoding."
+                    )
+                assignment[job] = server
             elif meta["type"] == "slack":
                 server = meta["server"]
                 weight = meta.get("weight", 1)

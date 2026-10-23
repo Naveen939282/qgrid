@@ -9,8 +9,10 @@ from qgrid.benchmark import (
     BenchmarkConfig,
     BenchmarkResult,
     BenchmarkTrial,
+    asymmetric_3job_3server_instance,
     compute_aggregate,
     compute_gap,
+    cost_asymmetry_2job_2server_instance,
     get_dependency_versions,
     greedy_fails_instance,
     medium_benchmark_instance,
@@ -20,6 +22,7 @@ from qgrid.benchmark import (
     run_exact,
     save_benchmark,
     serialize_instance,
+    tight_capacity_3job_2server_instance,
     tiny_benchmark_config,
     tiny_benchmark_instance,
 )
@@ -192,6 +195,50 @@ class TestGapComputation:
         gap = compute_gap(None, None)
         assert gap["absolute_gap"] is None
         assert gap["valid"] is False
+
+    def test_candidate_equal_optimum(self):
+        """Candidate equal to optimum should give zero gap, valid."""
+        gap = compute_gap(5.0, 5.0)
+        assert gap["absolute_gap"] == pytest.approx(0.0)
+        assert gap["valid"] is True
+
+    def test_candidate_worse_than_optimum(self):
+        """Candidate worse than optimum should give positive gap, valid."""
+        gap = compute_gap(10.0, 5.0)
+        assert gap["absolute_gap"] == pytest.approx(5.0)
+        assert gap["relative_gap"] == pytest.approx(1.0)
+        assert gap["valid"] is True
+
+    def test_candidate_lower_than_optimum_beyond_tolerance(self):
+        """Candidate below optimum by > tolerance must be flagged invalid."""
+        # Exact optimum is 5.0, candidate claims 3.0 (should be impossible)
+        gap = compute_gap(3.0, 5.0)
+        assert gap["absolute_gap"] == pytest.approx(-2.0)
+        assert gap["valid"] is False
+        # Must NOT hide the negative gap with abs()
+        assert gap["absolute_gap"] < 0
+
+    def test_tiny_negative_gap_within_tolerance(self):
+        """Tiny negative gap within tolerance is considered valid (numerical)."""
+        # Use a gap of ~1e-10, well within the 1e-9 tolerance
+        gap = compute_gap(4.9999999999, 5.0)
+        assert gap["absolute_gap"] < 0  # Slightly negative
+        assert gap["valid"] is True
+
+    def test_negative_optimum_zero_gap(self):
+        """Zero gap when optimum is negative."""
+        gap = compute_gap(-5.0, -5.0)
+        assert gap["absolute_gap"] == pytest.approx(0.0)
+        # |optimum| = 5.0 > tolerance, so relative_gap should be 0.0
+        assert gap["relative_gap"] == pytest.approx(0.0)
+        assert gap["valid"] is True
+
+    def test_negative_optimum_worse_candidate(self):
+        """Negative optimum with worse candidate: positive gap, valid."""
+        gap = compute_gap(-3.0, -5.0)
+        assert gap["absolute_gap"] == pytest.approx(2.0)
+        assert gap["relative_gap"] == pytest.approx(2.0 / 5.0)
+        assert gap["valid"] is True
 
 
 # ---------------------------------------------------------------------------
@@ -379,6 +426,43 @@ class TestJsonOutput:
         assert "seeds" in data["configuration"]
         assert "seeds" in data["configuration"]
 
+    def test_json_contains_utc_timestamps(self, tmp_path):
+        """JSON must contain timezone-aware UTC timestamps."""
+        from datetime import datetime
+
+        config = tiny_benchmark_config()
+        result = run_benchmark(config)
+        path = save_benchmark(result, results_dir=tmp_path)
+
+        with open(path, "r") as f:
+            data = json.load(f)
+        ts = data["timestamps"]
+        assert "utc_start" in ts
+        assert "utc_end" in ts
+
+        # Parse and verify UTC offset is zero
+        start = datetime.fromisoformat(ts["utc_start"])
+        end = datetime.fromisoformat(ts["utc_end"])
+        assert start.tzinfo is not None
+        assert end.tzinfo is not None
+        assert start.utcoffset().total_seconds() == 0.0
+        assert end.utcoffset().total_seconds() == 0.0
+
+    def test_json_timestamps_start_before_end(self, tmp_path):
+        """Start timestamp must not occur after end timestamp."""
+        from datetime import datetime
+
+        config = tiny_benchmark_config()
+        result = run_benchmark(config)
+        path = save_benchmark(result, results_dir=tmp_path)
+
+        with open(path, "r") as f:
+            data = json.load(f)
+        ts = data["timestamps"]
+        start = datetime.fromisoformat(ts["utc_start"])
+        end = datetime.fromisoformat(ts["utc_end"])
+        assert start <= end
+
 
 # ---------------------------------------------------------------------------
 # Per-trial and aggregate structure tests
@@ -424,7 +508,233 @@ class TestResultStructure:
 
 
 # ---------------------------------------------------------------------------
-# Existing API compatibility tests
+# Extended aggregate statistics tests
+# ---------------------------------------------------------------------------
+
+class TestExtendedAggregate:
+    """Tests for extended aggregate metrics (Checkpoint B1)."""
+
+    def test_n_attempted_and_n_completed(self):
+        """Aggregate must report n_attempted and n_completed."""
+        config = tiny_benchmark_config()
+        result = run_benchmark(config)
+        for method, summary in result.aggregate["methods"].items():
+            assert "n_attempted" in summary
+            assert "n_completed" in summary
+            assert summary["n_attempted"] == len(summary["raw_status"])
+            assert summary["n_completed"] == summary["n_attempted"]
+
+    def test_n_failed_field(self):
+        """Aggregate must report n_failed."""
+        config = tiny_benchmark_config()
+        result = run_benchmark(config)
+        for method, summary in result.aggregate["methods"].items():
+            assert "n_failed" in summary
+            assert summary["n_failed"] == 0
+
+    def test_failed_trials_counted_in_n_attempted(self):
+        """Manually constructed aggregate must count failed trials."""
+        trials = [
+            BenchmarkTrial(
+                method="qaoa", seed=0, objective=None, status="error",
+                is_optimal=False, runtime_seconds=1.0, feasible=False,
+                solution=None, message="error",
+            ),
+            BenchmarkTrial(
+                method="qaoa", seed=1, objective=5.0, status="success",
+                is_optimal=False, runtime_seconds=1.0, feasible=True,
+                solution={"assignment": {0: 1, 1: 0}},
+            ),
+        ]
+        agg = compute_aggregate(trials, exact_obj=5.0)
+        s = agg["methods"]["qaoa"]
+        assert s["n_attempted"] == 2
+        assert s["n_failed"] == 1
+        assert s["n_completed"] == 1
+        assert s["n_feasible"] == 1
+        assert s["feasible_rate"] == pytest.approx(0.5)
+
+    def test_feasible_rate_denominator(self):
+        """feasible_rate must use n_attempted as denominator."""
+        trials = [
+            BenchmarkTrial(
+                method="qaoa", seed=0, objective=5.0, status="success",
+                is_optimal=False, runtime_seconds=1.0, feasible=True,
+                solution={"assignment": {0: 1, 1: 0}},
+            ),
+            BenchmarkTrial(
+                method="qaoa", seed=1, objective=None, status="success",
+                is_optimal=False, runtime_seconds=1.0, feasible=False,
+                solution=None,
+            ),
+        ]
+        agg = compute_aggregate(trials, exact_obj=5.0)
+        s = agg["methods"]["qaoa"]
+        assert s["n_attempted"] == 2
+        assert s["n_feasible"] == 1
+        assert s["feasible_rate"] == pytest.approx(0.5)
+
+    def test_matched_optimum_count(self):
+        """matched_optimum_count counts feasible trials matching exact optimum."""
+        trials = [
+            BenchmarkTrial(
+                method="qaoa", seed=0, objective=5.0, status="success",
+                is_optimal=False, runtime_seconds=1.0, feasible=True,
+                solution={"assignment": {0: 1, 1: 0}},
+            ),
+            BenchmarkTrial(
+                method="qaoa", seed=1, objective=6.0, status="success",
+                is_optimal=False, runtime_seconds=1.0, feasible=True,
+                solution={"assignment": {0: 0, 1: 0}},
+            ),
+        ]
+        agg = compute_aggregate(trials, exact_obj=5.0)
+        s = agg["methods"]["qaoa"]
+        assert s["matched_optimum_count"] == 1
+        assert s["matched_optimum_rate"] == pytest.approx(0.5)
+
+    def test_qaoa_not_counted_as_proven_optimal(self):
+        """QAOA matching optimum is not proven optimal."""
+        trials = [
+            BenchmarkTrial(
+                method="qaoa", seed=0, objective=5.0, status="success",
+                is_optimal=False, runtime_seconds=1.0, feasible=True,
+                solution={"assignment": {0: 1, 1: 0}},
+            ),
+        ]
+        agg = compute_aggregate(trials, exact_obj=5.0)
+        s = agg["methods"]["qaoa"]
+        assert s["proven_optimal_count"] == 0
+        assert s["matched_optimum_count"] == 1
+
+    def test_exact_proven_optimal(self):
+        """Exact solver trials should be counted as proven_optimal."""
+        config = tiny_benchmark_config()
+        result = run_benchmark(config)
+        s = result.aggregate["methods"]["exact"]
+        assert s["proven_optimal_count"] == 1
+
+    def test_feasible_only_objective_stats(self):
+        """Objective stats computed over feasible trials only."""
+        trials = [
+            BenchmarkTrial(
+                method="qaoa", seed=0, objective=5.0, status="success",
+                is_optimal=False, runtime_seconds=1.0, feasible=True,
+                solution={"assignment": {0: 1, 1: 0}},
+            ),
+            BenchmarkTrial(
+                method="qaoa", seed=1, objective=8.0, status="success",
+                is_optimal=False, runtime_seconds=1.0, feasible=True,
+                solution={"assignment": {0: 0, 1: 0}},
+            ),
+            BenchmarkTrial(
+                method="qaoa", seed=2, objective=None, status="success",
+                is_optimal=False, runtime_seconds=1.0, feasible=False,
+                solution=None,
+            ),
+        ]
+        agg = compute_aggregate(trials, exact_obj=5.0)
+        s = agg["methods"]["qaoa"]
+        assert s["n_feasible_objectives"] == 2
+        assert s["best_feasible_objective"] == 5.0
+        assert s["worst_feasible_objective"] == 8.0
+        assert s["mean_feasible_objective"] == pytest.approx(6.5)
+        assert s["median_feasible_objective"] == pytest.approx(6.5)
+        assert s["std_feasible_objective"] is not None
+
+    def test_empty_feasible_set(self):
+        """All infeasible trials should produce null feasible stats."""
+        trials = [
+            BenchmarkTrial(
+                method="qaoa", seed=0, objective=None, status="success",
+                is_optimal=False, runtime_seconds=1.0, feasible=False,
+                solution=None,
+            ),
+        ]
+        agg = compute_aggregate(trials, exact_obj=5.0)
+        s = agg["methods"]["qaoa"]
+        assert s["n_feasible"] == 0
+        assert s["feasible_rate"] == 0.0
+        assert s["best_feasible_objective"] is None
+        assert s["best_feasible_gap"]["absolute_gap"] is None
+
+    def test_missing_exact_optimum(self):
+        """Missing exact optimum should produce null gaps."""
+        config = tiny_benchmark_config()
+        config.exact_max_combinations = 0
+        result = run_benchmark(config)
+        s = result.aggregate["methods"]["qaoa"]
+        assert s["best_feasible_gap"]["absolute_gap"] is None
+        assert s["best_feasible_gap"]["valid"] is False
+
+    def test_deterministic_solvers_one_trial(self):
+        """Deterministic solvers should have exactly 1 trial."""
+        config = tiny_benchmark_config()
+        result = run_benchmark(config)
+        for method in ["exact", "cpsat", "greedy"]:
+            s = result.aggregate["methods"][method]
+            assert s["n_attempted"] == 1
+
+    def test_multi_seed_config_serialization(self):
+        """Multi-seed config must serialize all seeds."""
+        config = BenchmarkConfig(
+            instance=tiny_benchmark_instance(),
+            instance_name="tiny_2job_2server",
+            seeds=[0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+            qaoa_depth=1, n_shots=512, maxiter=50,
+        )
+        result = run_benchmark(config)
+        assert result.configuration["seeds"] == list(range(10))
+        qaoa_trials = [t for t in result.trials if t.method == "qaoa"]
+        assert len(qaoa_trials) == 10
+        seeds_in_trials = sorted(t.seed for t in qaoa_trials)
+        assert seeds_in_trials == list(range(10))
+
+    def test_aggregate_contains_verification_status(self):
+        """Configuration must record exact optimum verification status."""
+        config = tiny_benchmark_config()
+        result = run_benchmark(config)
+        assert "exact_optimum_verified" in result.configuration
+        assert result.configuration["exact_optimum_verified"] is True
+
+    def test_json_valid_serialization(self, tmp_path):
+        """Saved JSON must be valid JSON with no NaN."""
+        config = tiny_benchmark_config()
+        result = run_benchmark(config)
+        path = save_benchmark(result, results_dir=tmp_path)
+        with open(path, "r") as f:
+            data = json.load(f)
+        assert "aggregate" in data
+        assert "methods" in data["aggregate"]
+
+    def test_json_multi_seed_saves_all_trials(self, tmp_path):
+        """Multi-seed runs must save all trials."""
+        config = BenchmarkConfig(
+            instance=tiny_benchmark_instance(),
+            instance_name="tiny_2job_2server",
+            seeds=[0, 1, 2],
+            qaoa_depth=1, n_shots=512, maxiter=50,
+        )
+        result = run_benchmark(config)
+        path = save_benchmark(result, results_dir=tmp_path)
+        with open(path, "r") as f:
+            data = json.load(f)
+        qaoa_trials = [t for t in data["trials"] if t["method"] == "qaoa"]
+        assert len(qaoa_trials) == 3
+
+    def test_qubo_resources_recorded(self):
+        """Instance serialization must include QUBO resource counts."""
+        config = tiny_benchmark_config()
+        result = run_benchmark(config)
+        qb = result.instance_definition["qubo_resources"]
+        assert "n_qubo_variables" in qb
+        assert "n_assignment_bits" in qb
+        assert "n_slack_bits" in qb
+        assert qb["n_qubo_variables"] == qb["n_assignment_bits"] + qb["n_slack_bits"]
+
+
+# ---------------------------------------------------------------------------
+# API compatibility tests
 # ---------------------------------------------------------------------------
 
 class TestApiCompatibility:
@@ -465,3 +775,13 @@ class TestApiCompatibility:
         import os
         assert os.path.exists("run_qaoa_experiment.py")
         assert os.path.exists("run_qaoa_finite_shot_experiment.py")
+
+    def test_run_benchmark_script_exists(self):
+        """run_benchmark.py must still exist."""
+        import os
+        assert os.path.exists("run_benchmark.py")
+
+    def test_multi_seed_script_exists(self):
+        """multi_seed_benchmark.py must exist."""
+        import os
+        assert os.path.exists("multi_seed_benchmark.py")

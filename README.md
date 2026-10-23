@@ -76,6 +76,55 @@ python -m pytest tests/ --cov=qgrid --cov-report=html -v
 3. Open the terminal (Ctrl + `)
 4. Run: `python -m pytest tests/ -v`
 
+## Results and Experiments
+
+### Benchmark Results
+
+The repository includes pre-computed benchmark results in `results/benchmarks/`. These contain exact optima, QUBO formulation metadata, solver comparisons, and per-trial runtime data.
+
+```bash
+# Reproduce multi-seed benchmarks
+python multi_seed_benchmark.py
+```
+
+### Noise-Sensitivity Experiment
+
+The 240-trial noise-sensitivity experiment is documented in `results/noise_sensitivity/`.
+
+```bash
+# Run the full 240-trial experiment
+python run_noise_experiment.py
+```
+
+**Critical disclosure:** QUBO parameters are optimized with a noiseless StatevectorSampler. Noise is applied only during final Aer sampling. This does not study noisy optimization convergence and is not evidence of quantum advantage.
+
+### Statistical Review
+
+```bash
+# Reproduce the statistical review
+python statistical_review.py
+```
+
+### Finding the Results
+
+| Directory | Contents |
+|---|---|
+| `results/benchmarks/` | Benchmark JSON outputs (exact solver, CP-SAT, greedy, QAOA) |
+| `results/benchmarks/multi_seed/` | Multi-seed benchmark results (6 instances) |
+| `results/noise_sensitivity/` | 240-trial raw experiment, analysis, and review |
+| `results/noise_sensitivity/analysis_20261023/` | Analysis reports, CSVs, and plots |
+| `results/noise_sensitivity/review_20261023/` | Statistical review deliverables |
+| `results/noise_sensitivity/PROVENANCE.md` | Experiment provenance manifest |
+| `results/smoke_tests/` | Smoke test outputs |
+
+### Environment
+
+Install dependencies with the pinned versions:
+
+```bash
+pip install -r requirements.txt
+```
+
 ## License
 
 MIT License — see LICENSE file for details.

@@ -135,9 +135,9 @@ class TestAerSampler:
 
     def test_aer_with_noise_model(self, tiny_problem, tiny_qubo, deterministic_init_params):
         """Aer with noise model should run without error and produce samples."""
-        noise = NoiseModel()
-        noise.add_all_qubit_quantum_error(depolarizing_error(0.01, 1), ["h", "rx", "rz"])
-        noise.add_all_qubit_quantum_error(depolarizing_error(0.02, 2), ["rzz"])
+        noise = NoiseModel(basis_gates=["id", "rz", "sx", "x", "cx", "rzz", "measure"])
+        noise.add_all_qubit_quantum_error(depolarizing_error(0.01, 1), ["rz", "sx"])
+        noise.add_all_qubit_quantum_error(depolarizing_error(0.02, 2), ["rzz", "cx"])
 
         result = solve_qaoa(
             tiny_problem, tiny_qubo,
@@ -167,7 +167,8 @@ class TestAerSampler:
         assert dict(result1.all_samples) == dict(result2.all_samples)
 
     def test_noise_model_gate_coverage(self):
-        """Verify noise model covers all gates used in QAOA circuit."""
+        """Verify noise model covers all gates in the transpiled QAOA circuit."""
+        from qiskit import transpile
         from qgrid.solvers.qaoa import _build_param_circuit
         from qgrid.formulation import encode_qubo
 
@@ -186,16 +187,21 @@ class TestAerSampler:
         qc_meas = qc.assign_parameters(param_dict)
         qc_meas.measure_all()
 
-        used_gates = set(qc_meas.count_ops().keys())
-        unitary_gates = {g for g in used_gates if g not in ("measure", "barrier")}
+        # Transpile to the same basis used by the Aer code path
+        basis_gates = ["id", "rz", "sx", "x", "cx", "rzz", "measure"]
+        transpiled = transpile(qc_meas, basis_gates=basis_gates, optimization_level=0)
 
-        noise = NoiseModel()
-        noise.add_all_qubit_quantum_error(depolarizing_error(0.01, 1), ["h", "rx", "rz"])
-        noise.add_all_qubit_quantum_error(depolarizing_error(0.02, 2), ["rzz"])
+        # Every non-trivial gate in the transpiled circuit must be noise-modeled
+        noise = NoiseModel(basis_gates=basis_gates)
+        noise.add_all_qubit_quantum_error(depolarizing_error(0.01, 1), ["rz", "sx"])
+        noise.add_all_qubit_quantum_error(depolarizing_error(0.02, 2), ["rzz", "cx"])
 
         noise_gate_names = set(noise.noise_instructions)
-
-        assert unitary_gates.issubset(noise_gate_names | {"measure", "barrier"})
+        transpiled_gates = set(transpiled.count_ops().keys())
+        trivial = {"measure", "barrier"}
+        non_trivial = transpiled_gates - trivial
+        assert non_trivial.issubset(noise_gate_names), \
+            f"Transpiled gates {non_trivial} not covered by noise model"
 
 
 # ---------------------------------------------------------------------------
@@ -207,9 +213,10 @@ class TestNoiseExperiment:
 
     def test_noise_model_creation(self):
         """Verify noise model is created with correct structure."""
-        noise = NoiseModel()
-        noise.add_all_qubit_quantum_error(depolarizing_error(0.01, 1), ["h", "rx", "rz"])
-        noise.add_all_qubit_quantum_error(depolarizing_error(0.02, 2), ["rzz"])
+        basis_gates = ["id", "rz", "sx", "x", "cx", "rzz", "measure"]
+        noise = NoiseModel(basis_gates=basis_gates)
+        noise.add_all_qubit_quantum_error(depolarizing_error(0.01, 1), ["rz", "sx"])
+        noise.add_all_qubit_quantum_error(depolarizing_error(0.02, 2), ["rzz", "cx"])
         assert noise is not None
         assert len(noise.noise_instructions) > 0
 
@@ -224,9 +231,9 @@ class TestNoiseExperiment:
         assert result_clean.sampler_type == "aer"
         assert len(result_clean.all_samples) > 0
 
-        noise = NoiseModel()
-        noise.add_all_qubit_quantum_error(depolarizing_error(0.01, 1), ["h"])
-        noise.add_all_qubit_quantum_error(depolarizing_error(0.02, 2), ["rzz"])
+        noise = NoiseModel(basis_gates=["id", "rz", "sx", "x", "cx", "rzz", "measure"])
+        noise.add_all_qubit_quantum_error(depolarizing_error(0.01, 1), ["rz", "sx"])
+        noise.add_all_qubit_quantum_error(depolarizing_error(0.02, 2), ["rzz", "cx"])
         result_noisy = solve_qaoa(
             tiny_problem, tiny_qubo,
             p=1, n_shots=128, maxiter=30,
@@ -270,3 +277,108 @@ class TestExperimentMetrics:
         )
         expected = max(maxiter, n_params + 2)
         assert result.effective_maxiter == expected
+
+
+# ---------------------------------------------------------------------------
+# Regression tests: duplicate assignment decoding
+# ---------------------------------------------------------------------------
+
+class TestDecodeSolutionDuplicates:
+    """Regression tests for decode_solution duplicate assignment handling."""
+
+    def test_valid_assignment_decodes(self, tiny_qubo):
+        """A valid bitstring with exactly one server per job decodes correctly."""
+        qubo = tiny_qubo
+        job0_vars = [i for i, m in enumerate(qubo.var_metadata)
+                     if m["type"] == "assignment" and m["job"] == 0]
+        job1_vars = [i for i, m in enumerate(qubo.var_metadata)
+                     if m["type"] == "assignment" and m["job"] == 1]
+
+        x = np.zeros(qubo.n_vars, dtype=float)
+        x[job0_vars[0]] = 1.0
+        x[job1_vars[0]] = 1.0
+
+        assignment, slack = decode_solution(x, qubo)
+        assert len(assignment) == 2
+        for job in assignment:
+            assert assignment[job] is not None
+
+    def test_missing_assignment_returns_empty(self, tiny_qubo):
+        """A bitstring with no assignment variables set returns empty assignment."""
+        qubo = tiny_qubo
+        x = np.zeros(qubo.n_vars, dtype=float)
+        assignment, slack = decode_solution(x, qubo)
+        assert len(assignment) == 0
+
+    def test_duplicate_assignment_raises(self, tiny_qubo):
+        """A bitstring with two servers for the same job raises ValueError."""
+        qubo = tiny_qubo
+        job0_vars = [i for i, m in enumerate(qubo.var_metadata)
+                     if m["type"] == "assignment" and m["job"] == 0]
+
+        if len(job0_vars) < 2:
+            pytest.skip("Instance has fewer than 2 servers for job 0")
+
+        x = np.zeros(qubo.n_vars, dtype=float)
+        x[job0_vars[0]] = 1.0
+        x[job0_vars[1]] = 1.0
+
+        with pytest.raises(ValueError, match="multiple servers for job 0"):
+            decode_solution(x, qubo)
+
+
+# ---------------------------------------------------------------------------
+# Regression tests: Aer noise model basis gate coverage
+# ---------------------------------------------------------------------------
+
+class TestNoiseModelBasisGates:
+    """Tests verifying Aer noise model covers transpiled gate instructions."""
+
+    def test_transpiled_gate_coverage(self, tiny_qubo):
+        """Transpiled QAOA circuit gates must be covered by noise model basis."""
+        from qiskit import transpile
+        from qgrid.solvers.qaoa import _build_param_circuit
+
+        qc, gammas, betas = _build_param_circuit(tiny_qubo, p=1, n_qubits=tiny_qubo.n_vars)
+        param_dict = {str(gammas[0]): 0.1, str(betas[0]): 0.1}
+        qc_final = qc.assign_parameters(param_dict)
+        qc_final.measure_all()
+
+        basis_gates = ["id", "rz", "sx", "x", "cx", "rzz", "measure"]
+        transpiled = transpile(qc_final, basis_gates=basis_gates, optimization_level=0)
+
+        noise = NoiseModel(basis_gates=basis_gates)
+        noise.add_all_qubit_quantum_error(depolarizing_error(0.01, 1), ["rz", "sx"])
+        noise.add_all_qubit_quantum_error(depolarizing_error(0.02, 2), ["rzz", "cx"])
+
+        noise_gates = set(noise.noise_instructions)
+        transpiled_gates = set(transpiled.count_ops().keys())
+        non_trivial = transpiled_gates - {"measure", "barrier"}
+        assert non_trivial.issubset(noise_gates)
+
+    def test_noiseless_aer_available(self, tiny_problem, tiny_qubo, deterministic_init_params):
+        """Aer noiseless path still works (noise_model=None)."""
+        result = solve_qaoa(
+            tiny_problem, tiny_qubo,
+            p=1, n_shots=128, maxiter=30,
+            seed=42, init_params=deterministic_init_params[:2],
+            sampler_type="aer", aer_noise_model=None,
+        )
+        assert result.sampler_type == "aer"
+        assert len(result.all_samples) > 0
+
+    def test_aer_seed_reproducibility(self, tiny_problem, tiny_qubo, deterministic_init_params):
+        """Same seed produces same Aer results."""
+        r1 = solve_qaoa(
+            tiny_problem, tiny_qubo,
+            p=1, n_shots=128, maxiter=30,
+            seed=42, init_params=deterministic_init_params[:2],
+            sampler_type="aer", aer_noise_model=None,
+        )
+        r2 = solve_qaoa(
+            tiny_problem, tiny_qubo,
+            p=1, n_shots=128, maxiter=30,
+            seed=42, init_params=deterministic_init_params[:2],
+            sampler_type="aer", aer_noise_model=None,
+        )
+        assert dict(r1.all_samples) == dict(r2.all_samples)

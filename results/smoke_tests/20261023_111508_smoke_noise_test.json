@@ -1,0 +1,174 @@
+{
+  "experiment_type": "smoke_test_noise_sensitivity",
+  "instance": "tiny_2job_2server",
+  "qaoa_depth": 2,
+  "optimizer": "COBYLA",
+  "maxiter": 50,
+  "n_shots": 512,
+  "exact_objective": 5.0,
+  "noise_basis_gates": [
+    "id",
+    "rz",
+    "sx",
+    "x",
+    "cx",
+    "rzz",
+    "measure"
+  ],
+  "seeds": [
+    0,
+    1
+  ],
+  "noise_levels": [
+    0.0,
+    0.1
+  ],
+  "n_trials_expected": 4,
+  "package_versions": {
+    "qiskit": "2.6.0",
+    "qiskit-aer": "0.17.2"
+  },
+  "results": {
+    "trials": [
+      {
+        "seed": 0,
+        "noise_condition": "noiseless",
+        "noise_p_depol": 0.0,
+        "sampler_type": "aer",
+        "exact_objective": 5.0,
+        "best_feasible_objective": 5.0,
+        "best_feasible_energy": 260.0,
+        "best_energy": 5.0,
+        "best_energy_bitstring": "01110110110",
+        "feasible_sample_fraction": 0.263671875,
+        "status": "success",
+        "runtime_seconds": 12.996,
+        "n_shots": 512,
+        "qaoa_depth": 2,
+        "effective_maxiter": 50,
+        "noise_basis_gates": [
+          "id",
+          "rz",
+          "sx",
+          "x",
+          "cx",
+          "rzz",
+          "measure"
+        ],
+        "circuit_gates": {
+          "rz": 102,
+          "sx": 55,
+          "rzz": 54,
+          "measure": 11,
+          "barrier": 1
+        },
+        "objective_gap": 0.0
+      },
+      {
+        "seed": 0,
+        "noise_condition": "p=0.10",
+        "noise_p_depol": 0.1,
+        "sampler_type": "aer",
+        "exact_objective": 5.0,
+        "best_feasible_objective": 5.0,
+        "best_feasible_energy": 605.0,
+        "best_energy": 5.0,
+        "best_energy_bitstring": "01110110110",
+        "feasible_sample_fraction": 0.2578125,
+        "status": "success",
+        "runtime_seconds": 1.969,
+        "n_shots": 512,
+        "qaoa_depth": 2,
+        "effective_maxiter": 50,
+        "noise_basis_gates": [
+          "id",
+          "rz",
+          "sx",
+          "x",
+          "cx",
+          "rzz",
+          "measure"
+        ],
+        "circuit_gates": {
+          "rz": 102,
+          "sx": 55,
+          "rzz": 54,
+          "measure": 11,
+          "barrier": 1
+        },
+        "objective_gap": 0.0
+      },
+      {
+        "seed": 1,
+        "noise_condition": "noiseless",
+        "noise_p_depol": 0.0,
+        "sampler_type": "aer",
+        "exact_objective": 5.0,
+        "best_feasible_objective": 5.0,
+        "best_feasible_energy": 275.0,
+        "best_energy": 5.0,
+        "best_energy_bitstring": "01110110110",
+        "feasible_sample_fraction": 0.2265625,
+        "status": "success",
+        "runtime_seconds": 1.67,
+        "n_shots": 512,
+        "qaoa_depth": 2,
+        "effective_maxiter": 50,
+        "noise_basis_gates": [
+          "id",
+          "rz",
+          "sx",
+          "x",
+          "cx",
+          "rzz",
+          "measure"
+        ],
+        "circuit_gates": {
+          "rz": 102,
+          "sx": 55,
+          "rzz": 54,
+          "measure": 11,
+          "barrier": 1
+        },
+        "objective_gap": 0.0
+      },
+      {
+        "seed": 1,
+        "noise_condition": "p=0.10",
+        "noise_p_depol": 0.1,
+        "sampler_type": "aer",
+        "exact_objective": 5.0,
+        "best_feasible_objective": 5.0,
+        "best_feasible_energy": 65.0,
+        "best_energy": 5.0,
+        "best_energy_bitstring": "01110110110",
+        "feasible_sample_fraction": 0.2578125,
+        "status": "success",
+        "runtime_seconds": 2.155,
+        "n_shots": 512,
+        "qaoa_depth": 2,
+        "effective_maxiter": 50,
+        "noise_basis_gates": [
+          "id",
+          "rz",
+          "sx",
+          "x",
+          "cx",
+          "rzz",
+          "measure"
+        ],
+        "circuit_gates": {
+          "rz": 102,
+          "sx": 55,
+          "rzz": 54,
+          "measure": 11,
+          "barrier": 1
+        },
+        "objective_gap": 0.0
+      }
+    ],
+    "n_attempted": 4,
+    "n_succeeded": 4,
+    "n_failed": 0
+  }
+}

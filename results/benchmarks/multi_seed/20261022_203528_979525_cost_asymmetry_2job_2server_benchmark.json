@@ -1,0 +1,856 @@
+{
+  "schema_version": "1.0",
+  "instance_definition": {
+    "name": "cost_asymmetry_2job_2server",
+    "n_jobs": 2,
+    "n_servers": 2,
+    "job_demands": [
+      4.0,
+      1.0
+    ],
+    "server_capacities": [
+      4.0,
+      5.0
+    ],
+    "eligible_jobs": [
+      [
+        0,
+        1
+      ],
+      [
+        0,
+        1
+      ]
+    ],
+    "energy_costs": {
+      "(0,0)": 1.0,
+      "(0,1)": 8.0,
+      "(1,0)": 7.0,
+      "(1,1)": 2.0
+    },
+    "qubo_resources": {
+      "n_qubo_variables": 10,
+      "n_assignment_bits": 4,
+      "n_slack_bits": 6
+    }
+  },
+  "configuration": {
+    "seeds": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9
+    ],
+    "qaoa_depth": 1,
+    "n_shots": 512,
+    "maxiter": 50,
+    "cp_sat_time_limit": 5.0,
+    "exact_max_combinations": 10000000,
+    "exact_optimum_verified": true,
+    "exact_optimum_status": "optimal"
+  },
+  "dependency_versions": {
+    "qiskit": "2.6.0",
+    "qiskit_aer": "0.17.2",
+    "scipy": "1.18.1",
+    "numpy": "2.5.4",
+    "ortools": "9.15.6755",
+    "python": "3.12.10"
+  },
+  "trials": [
+    {
+      "method": "exact",
+      "seed": null,
+      "objective": 3.0,
+      "status": "optimal",
+      "is_optimal": true,
+      "runtime_seconds": 0.0002201000024797395,
+      "feasible": true,
+      "solution": {
+        "assignment": {
+          "0": 0,
+          "1": 1
+        }
+      },
+      "message": "Optimal solution found after exhaustive search over 4 assignments.",
+      "metadata": {
+        "internal_runtime_seconds": 0.00020209999638609588,
+        "notes": "Total combinations examined: 4"
+      }
+    },
+    {
+      "method": "cpsat",
+      "seed": null,
+      "objective": 3.0,
+      "status": "optimal",
+      "is_optimal": true,
+      "runtime_seconds": 0.02107449999311939,
+      "feasible": true,
+      "solution": {
+        "assignment": {
+          "0": 0,
+          "1": 1
+        }
+      },
+      "message": "CP-SAT status: OPTIMAL",
+      "metadata": {
+        "internal_runtime_seconds": 0.02008219998970162,
+        "notes": "CP-SAT scaled objective: 3.0000"
+      }
+    },
+    {
+      "method": "greedy",
+      "seed": null,
+      "objective": 3.0,
+      "status": "feasible",
+      "is_optimal": false,
+      "runtime_seconds": 0.00017840000509750098,
+      "feasible": true,
+      "solution": {
+        "assignment": {
+          "0": 0,
+          "1": 1
+        }
+      },
+      "message": "Greedy solution found using job order: index.",
+      "metadata": {
+        "internal_runtime_seconds": 0.00012310000602155924,
+        "notes": "Assignment: {0: 0, 1: 1}"
+      }
+    },
+    {
+      "method": "qaoa",
+      "seed": 0,
+      "objective": 3.0,
+      "status": "success",
+      "is_optimal": false,
+      "runtime_seconds": 2.0420048000087263,
+      "feasible": true,
+      "solution": {
+        "assignment": {
+          "0": 0,
+          "1": 1
+        }
+      },
+      "message": "QAOA (p=1) completed with status 'success'. 290 unique bitstrings sampled over 512 shots. Best energy: 27.000000.",
+      "metadata": {
+        "qaoa_depth": 1,
+        "n_shots": 512,
+        "sampler_type": "statevector",
+        "effective_maxiter": 50,
+        "best_feasible_energy": 411.0,
+        "best_energy": 27.0,
+        "best_energy_bitstring": "1010001001",
+        "feasible_sample_fraction": 0.537109375,
+        "n_unique_bitstrings": 290,
+        "circuit_metrics": {
+          "n_qubits": 10,
+          "depth": 12,
+          "gate_counts": {
+            "rzz": 22,
+            "h": 10,
+            "rz": 10,
+            "rx": 10
+          },
+          "total_gates": 52,
+          "transpilation_config": {
+            "note": "No transpilation applied; metrics from ansatze circuit before measurement.",
+            "basis_gates": null,
+            "backend_name": null
+          }
+        },
+        "objective_gap": {
+          "absolute_gap": 0.0,
+          "relative_gap": 0.0,
+          "valid": true
+        }
+      }
+    },
+    {
+      "method": "qaoa",
+      "seed": 1,
+      "objective": 3.0,
+      "status": "success",
+      "is_optimal": false,
+      "runtime_seconds": 2.566395300003933,
+      "feasible": true,
+      "solution": {
+        "assignment": {
+          "0": 0,
+          "1": 1
+        }
+      },
+      "message": "QAOA (p=1) completed with status 'success'. 285 unique bitstrings sampled over 512 shots. Best energy: 25.000000.",
+      "metadata": {
+        "qaoa_depth": 1,
+        "n_shots": 512,
+        "sampler_type": "statevector",
+        "effective_maxiter": 50,
+        "best_feasible_energy": 443.0,
+        "best_energy": 25.0,
+        "best_energy_bitstring": "1010000001",
+        "feasible_sample_fraction": 0.439453125,
+        "n_unique_bitstrings": 285,
+        "circuit_metrics": {
+          "n_qubits": 10,
+          "depth": 12,
+          "gate_counts": {
+            "rzz": 22,
+            "h": 10,
+            "rz": 10,
+            "rx": 10
+          },
+          "total_gates": 52,
+          "transpilation_config": {
+            "note": "No transpilation applied; metrics from ansatze circuit before measurement.",
+            "basis_gates": null,
+            "backend_name": null
+          }
+        },
+        "objective_gap": {
+          "absolute_gap": 0.0,
+          "relative_gap": 0.0,
+          "valid": true
+        }
+      }
+    },
+    {
+      "method": "qaoa",
+      "seed": 2,
+      "objective": 3.0,
+      "status": "success",
+      "is_optimal": false,
+      "runtime_seconds": 2.2653644000092754,
+      "feasible": true,
+      "solution": {
+        "assignment": {
+          "0": 0,
+          "1": 1
+        }
+      },
+      "message": "QAOA (p=1) completed with status 'success'. 348 unique bitstrings sampled over 512 shots. Best energy: 3.000000.",
+      "metadata": {
+        "qaoa_depth": 1,
+        "n_shots": 512,
+        "sampler_type": "statevector",
+        "effective_maxiter": 50,
+        "best_feasible_energy": 227.0,
+        "best_energy": 3.0,
+        "best_energy_bitstring": "1000001001",
+        "feasible_sample_fraction": 0.474609375,
+        "n_unique_bitstrings": 348,
+        "circuit_metrics": {
+          "n_qubits": 10,
+          "depth": 12,
+          "gate_counts": {
+            "rzz": 22,
+            "h": 10,
+            "rz": 10,
+            "rx": 10
+          },
+          "total_gates": 52,
+          "transpilation_config": {
+            "note": "No transpilation applied; metrics from ansatze circuit before measurement.",
+            "basis_gates": null,
+            "backend_name": null
+          }
+        },
+        "objective_gap": {
+          "absolute_gap": 0.0,
+          "relative_gap": 0.0,
+          "valid": true
+        }
+      }
+    },
+    {
+      "method": "qaoa",
+      "seed": 3,
+      "objective": 3.0,
+      "status": "success",
+      "is_optimal": false,
+      "runtime_seconds": 2.1600651999906404,
+      "feasible": true,
+      "solution": {
+        "assignment": {
+          "0": 0,
+          "1": 1
+        }
+      },
+      "message": "QAOA (p=1) completed with status 'success'. 269 unique bitstrings sampled over 512 shots. Best energy: 3.000000.",
+      "metadata": {
+        "qaoa_depth": 1,
+        "n_shots": 512,
+        "sampler_type": "statevector",
+        "effective_maxiter": 50,
+        "best_feasible_energy": 59.0,
+        "best_energy": 3.0,
+        "best_energy_bitstring": "1000001001",
+        "feasible_sample_fraction": 0.453125,
+        "n_unique_bitstrings": 269,
+        "circuit_metrics": {
+          "n_qubits": 10,
+          "depth": 12,
+          "gate_counts": {
+            "rzz": 22,
+            "h": 10,
+            "rz": 10,
+            "rx": 10
+          },
+          "total_gates": 52,
+          "transpilation_config": {
+            "note": "No transpilation applied; metrics from ansatze circuit before measurement.",
+            "basis_gates": null,
+            "backend_name": null
+          }
+        },
+        "objective_gap": {
+          "absolute_gap": 0.0,
+          "relative_gap": 0.0,
+          "valid": true
+        }
+      }
+    },
+    {
+      "method": "qaoa",
+      "seed": 4,
+      "objective": 3.0,
+      "status": "success",
+      "is_optimal": false,
+      "runtime_seconds": 2.3885922000044957,
+      "feasible": true,
+      "solution": {
+        "assignment": {
+          "0": 0,
+          "1": 1
+        }
+      },
+      "message": "QAOA (p=1) completed with status 'success'. 235 unique bitstrings sampled over 512 shots. Best energy: 9.000000.",
+      "metadata": {
+        "qaoa_depth": 1,
+        "n_shots": 512,
+        "sampler_type": "statevector",
+        "effective_maxiter": 50,
+        "best_feasible_energy": 603.0,
+        "best_energy": 9.0,
+        "best_energy_bitstring": "0001001100",
+        "feasible_sample_fraction": 0.65625,
+        "n_unique_bitstrings": 235,
+        "circuit_metrics": {
+          "n_qubits": 10,
+          "depth": 12,
+          "gate_counts": {
+            "rzz": 22,
+            "h": 10,
+            "rz": 10,
+            "rx": 10
+          },
+          "total_gates": 52,
+          "transpilation_config": {
+            "note": "No transpilation applied; metrics from ansatze circuit before measurement.",
+            "basis_gates": null,
+            "backend_name": null
+          }
+        },
+        "objective_gap": {
+          "absolute_gap": 0.0,
+          "relative_gap": 0.0,
+          "valid": true
+        }
+      }
+    },
+    {
+      "method": "qaoa",
+      "seed": 5,
+      "objective": 3.0,
+      "status": "success",
+      "is_optimal": false,
+      "runtime_seconds": 2.004843000002438,
+      "feasible": true,
+      "solution": {
+        "assignment": {
+          "0": 0,
+          "1": 1
+        }
+      },
+      "message": "QAOA (p=1) completed with status 'success'. 340 unique bitstrings sampled over 512 shots. Best energy: 3.000000.",
+      "metadata": {
+        "qaoa_depth": 1,
+        "n_shots": 512,
+        "sampler_type": "statevector",
+        "effective_maxiter": 50,
+        "best_feasible_energy": 603.0,
+        "best_energy": 3.0,
+        "best_energy_bitstring": "1000001001",
+        "feasible_sample_fraction": 0.453125,
+        "n_unique_bitstrings": 340,
+        "circuit_metrics": {
+          "n_qubits": 10,
+          "depth": 12,
+          "gate_counts": {
+            "rzz": 22,
+            "h": 10,
+            "rz": 10,
+            "rx": 10
+          },
+          "total_gates": 52,
+          "transpilation_config": {
+            "note": "No transpilation applied; metrics from ansatze circuit before measurement.",
+            "basis_gates": null,
+            "backend_name": null
+          }
+        },
+        "objective_gap": {
+          "absolute_gap": 0.0,
+          "relative_gap": 0.0,
+          "valid": true
+        }
+      }
+    },
+    {
+      "method": "qaoa",
+      "seed": 6,
+      "objective": 3.0,
+      "status": "success",
+      "is_optimal": false,
+      "runtime_seconds": 2.2239623999921605,
+      "feasible": true,
+      "solution": {
+        "assignment": {
+          "0": 0,
+          "1": 1
+        }
+      },
+      "message": "QAOA (p=1) completed with status 'success'. 283 unique bitstrings sampled over 512 shots. Best energy: 3.000000.",
+      "metadata": {
+        "qaoa_depth": 1,
+        "n_shots": 512,
+        "sampler_type": "statevector",
+        "effective_maxiter": 50,
+        "best_feasible_energy": 315.0,
+        "best_energy": 3.0,
+        "best_energy_bitstring": "1000001001",
+        "feasible_sample_fraction": 0.5,
+        "n_unique_bitstrings": 283,
+        "circuit_metrics": {
+          "n_qubits": 10,
+          "depth": 12,
+          "gate_counts": {
+            "rzz": 22,
+            "h": 10,
+            "rz": 10,
+            "rx": 10
+          },
+          "total_gates": 52,
+          "transpilation_config": {
+            "note": "No transpilation applied; metrics from ansatze circuit before measurement.",
+            "basis_gates": null,
+            "backend_name": null
+          }
+        },
+        "objective_gap": {
+          "absolute_gap": 0.0,
+          "relative_gap": 0.0,
+          "valid": true
+        }
+      }
+    },
+    {
+      "method": "qaoa",
+      "seed": 7,
+      "objective": 3.0,
+      "status": "success",
+      "is_optimal": false,
+      "runtime_seconds": 2.023932300013257,
+      "feasible": true,
+      "solution": {
+        "assignment": {
+          "0": 0,
+          "1": 1
+        }
+      },
+      "message": "QAOA (p=1) completed with status 'success'. 271 unique bitstrings sampled over 512 shots. Best energy: 9.000000.",
+      "metadata": {
+        "qaoa_depth": 1,
+        "n_shots": 512,
+        "sampler_type": "statevector",
+        "effective_maxiter": 50,
+        "best_feasible_energy": 123.0,
+        "best_energy": 9.0,
+        "best_energy_bitstring": "0001001100",
+        "feasible_sample_fraction": 0.513671875,
+        "n_unique_bitstrings": 271,
+        "circuit_metrics": {
+          "n_qubits": 10,
+          "depth": 12,
+          "gate_counts": {
+            "rzz": 22,
+            "h": 10,
+            "rz": 10,
+            "rx": 10
+          },
+          "total_gates": 52,
+          "transpilation_config": {
+            "note": "No transpilation applied; metrics from ansatze circuit before measurement.",
+            "basis_gates": null,
+            "backend_name": null
+          }
+        },
+        "objective_gap": {
+          "absolute_gap": 0.0,
+          "relative_gap": 0.0,
+          "valid": true
+        }
+      }
+    },
+    {
+      "method": "qaoa",
+      "seed": 8,
+      "objective": 3.0,
+      "status": "success",
+      "is_optimal": false,
+      "runtime_seconds": 2.130346500009182,
+      "feasible": true,
+      "solution": {
+        "assignment": {
+          "0": 0,
+          "1": 1
+        }
+      },
+      "message": "QAOA (p=1) completed with status 'success'. 325 unique bitstrings sampled over 512 shots. Best energy: 31.000000.",
+      "metadata": {
+        "qaoa_depth": 1,
+        "n_shots": 512,
+        "sampler_type": "statevector",
+        "effective_maxiter": 50,
+        "best_feasible_energy": 483.0,
+        "best_energy": 31.0,
+        "best_energy_bitstring": "0011000100",
+        "feasible_sample_fraction": 0.51953125,
+        "n_unique_bitstrings": 325,
+        "circuit_metrics": {
+          "n_qubits": 10,
+          "depth": 12,
+          "gate_counts": {
+            "rzz": 22,
+            "h": 10,
+            "rz": 10,
+            "rx": 10
+          },
+          "total_gates": 52,
+          "transpilation_config": {
+            "note": "No transpilation applied; metrics from ansatze circuit before measurement.",
+            "basis_gates": null,
+            "backend_name": null
+          }
+        },
+        "objective_gap": {
+          "absolute_gap": 0.0,
+          "relative_gap": 0.0,
+          "valid": true
+        }
+      }
+    },
+    {
+      "method": "qaoa",
+      "seed": 9,
+      "objective": 3.0,
+      "status": "success",
+      "is_optimal": false,
+      "runtime_seconds": 1.7601220000069588,
+      "feasible": true,
+      "solution": {
+        "assignment": {
+          "0": 0,
+          "1": 1
+        }
+      },
+      "message": "QAOA (p=1) completed with status 'success'. 234 unique bitstrings sampled over 512 shots. Best energy: 3.000000.",
+      "metadata": {
+        "qaoa_depth": 1,
+        "n_shots": 512,
+        "sampler_type": "statevector",
+        "effective_maxiter": 50,
+        "best_feasible_energy": 1787.0,
+        "best_energy": 3.0,
+        "best_energy_bitstring": "1000001001",
+        "feasible_sample_fraction": 0.724609375,
+        "n_unique_bitstrings": 234,
+        "circuit_metrics": {
+          "n_qubits": 10,
+          "depth": 12,
+          "gate_counts": {
+            "rzz": 22,
+            "h": 10,
+            "rz": 10,
+            "rx": 10
+          },
+          "total_gates": 52,
+          "transpilation_config": {
+            "note": "No transpilation applied; metrics from ansatze circuit before measurement.",
+            "basis_gates": null,
+            "backend_name": null
+          }
+        },
+        "objective_gap": {
+          "absolute_gap": 0.0,
+          "relative_gap": 0.0,
+          "valid": true
+        }
+      }
+    }
+  ],
+  "aggregate": {
+    "exact_optimum": 3.0,
+    "methods": {
+      "exact": {
+        "n_attempted": 1,
+        "n_completed": 1,
+        "n_failed": 0,
+        "n_feasible": 1,
+        "n_feasible_attempted": 1,
+        "feasible_rate": 1.0,
+        "matched_optimum_count": 1,
+        "matched_optimum_rate": 1.0,
+        "proven_optimal_count": 1,
+        "raw_objectives": [
+          3.0
+        ],
+        "raw_runtimes": [
+          0.0002201000024797395
+        ],
+        "raw_feasible": [
+          true
+        ],
+        "raw_status": [
+          "optimal"
+        ],
+        "raw_seeds": [
+          null
+        ],
+        "best_feasible_objective": 3.0,
+        "worst_feasible_objective": 3.0,
+        "mean_feasible_objective": 3.0,
+        "median_feasible_objective": 3.0,
+        "std_feasible_objective": null,
+        "n_feasible_objectives": 1,
+        "best_objective": 3.0,
+        "worst_objective": 3.0,
+        "mean_objective": 3.0,
+        "median_objective": 3.0,
+        "std_objective": null,
+        "n_objectives": 1,
+        "runtime_mean": 0.0002201000024797395,
+        "runtime_median": 0.0002201000024797395,
+        "runtime_std": null,
+        "best_feasible_gap": {
+          "absolute_gap": 0.0,
+          "relative_gap": 0.0,
+          "valid": true
+        },
+        "n_trials": 1,
+        "feasible_count": 1
+      },
+      "cpsat": {
+        "n_attempted": 1,
+        "n_completed": 1,
+        "n_failed": 0,
+        "n_feasible": 1,
+        "n_feasible_attempted": 1,
+        "feasible_rate": 1.0,
+        "matched_optimum_count": 1,
+        "matched_optimum_rate": 1.0,
+        "proven_optimal_count": 1,
+        "raw_objectives": [
+          3.0
+        ],
+        "raw_runtimes": [
+          0.02107449999311939
+        ],
+        "raw_feasible": [
+          true
+        ],
+        "raw_status": [
+          "optimal"
+        ],
+        "raw_seeds": [
+          null
+        ],
+        "best_feasible_objective": 3.0,
+        "worst_feasible_objective": 3.0,
+        "mean_feasible_objective": 3.0,
+        "median_feasible_objective": 3.0,
+        "std_feasible_objective": null,
+        "n_feasible_objectives": 1,
+        "best_objective": 3.0,
+        "worst_objective": 3.0,
+        "mean_objective": 3.0,
+        "median_objective": 3.0,
+        "std_objective": null,
+        "n_objectives": 1,
+        "runtime_mean": 0.02107449999311939,
+        "runtime_median": 0.02107449999311939,
+        "runtime_std": null,
+        "best_feasible_gap": {
+          "absolute_gap": 0.0,
+          "relative_gap": 0.0,
+          "valid": true
+        },
+        "n_trials": 1,
+        "feasible_count": 1
+      },
+      "greedy": {
+        "n_attempted": 1,
+        "n_completed": 1,
+        "n_failed": 0,
+        "n_feasible": 1,
+        "n_feasible_attempted": 1,
+        "feasible_rate": 1.0,
+        "matched_optimum_count": 1,
+        "matched_optimum_rate": 1.0,
+        "proven_optimal_count": 0,
+        "raw_objectives": [
+          3.0
+        ],
+        "raw_runtimes": [
+          0.00017840000509750098
+        ],
+        "raw_feasible": [
+          true
+        ],
+        "raw_status": [
+          "feasible"
+        ],
+        "raw_seeds": [
+          null
+        ],
+        "best_feasible_objective": 3.0,
+        "worst_feasible_objective": 3.0,
+        "mean_feasible_objective": 3.0,
+        "median_feasible_objective": 3.0,
+        "std_feasible_objective": null,
+        "n_feasible_objectives": 1,
+        "best_objective": 3.0,
+        "worst_objective": 3.0,
+        "mean_objective": 3.0,
+        "median_objective": 3.0,
+        "std_objective": null,
+        "n_objectives": 1,
+        "runtime_mean": 0.00017840000509750098,
+        "runtime_median": 0.00017840000509750098,
+        "runtime_std": null,
+        "best_feasible_gap": {
+          "absolute_gap": 0.0,
+          "relative_gap": 0.0,
+          "valid": true
+        },
+        "n_trials": 1,
+        "feasible_count": 1
+      },
+      "qaoa": {
+        "n_attempted": 10,
+        "n_completed": 10,
+        "n_failed": 0,
+        "n_feasible": 10,
+        "n_feasible_attempted": 10,
+        "feasible_rate": 1.0,
+        "matched_optimum_count": 10,
+        "matched_optimum_rate": 1.0,
+        "proven_optimal_count": 0,
+        "raw_objectives": [
+          3.0,
+          3.0,
+          3.0,
+          3.0,
+          3.0,
+          3.0,
+          3.0,
+          3.0,
+          3.0,
+          3.0
+        ],
+        "raw_runtimes": [
+          2.0420048000087263,
+          2.566395300003933,
+          2.2653644000092754,
+          2.1600651999906404,
+          2.3885922000044957,
+          2.004843000002438,
+          2.2239623999921605,
+          2.023932300013257,
+          2.130346500009182,
+          1.7601220000069588
+        ],
+        "raw_feasible": [
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true
+        ],
+        "raw_status": [
+          "success",
+          "success",
+          "success",
+          "success",
+          "success",
+          "success",
+          "success",
+          "success",
+          "success",
+          "success"
+        ],
+        "raw_seeds": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ],
+        "best_feasible_objective": 3.0,
+        "worst_feasible_objective": 3.0,
+        "mean_feasible_objective": 3.0,
+        "median_feasible_objective": 3.0,
+        "std_feasible_objective": 0.0,
+        "n_feasible_objectives": 10,
+        "best_objective": 3.0,
+        "worst_objective": 3.0,
+        "mean_objective": 3.0,
+        "median_objective": 3.0,
+        "std_objective": 0.0,
+        "n_objectives": 10,
+        "runtime_mean": 2.1565628100041065,
+        "runtime_median": 2.145205849999911,
+        "runtime_std": 0.21207992985185092,
+        "best_feasible_gap": {
+          "absolute_gap": 0.0,
+          "relative_gap": 0.0,
+          "valid": true
+        },
+        "n_trials": 10,
+        "feasible_count": 10
+      }
+    }
+  },
+  "timestamps": {
+    "start": "2026-10-22T20:35:07.220765",
+    "end": "2026-10-22T20:35:28.979525",
+    "utc_start": "2026-10-22T15:05:07.220765+00:00",
+    "utc_end": "2026-10-22T15:05:28.979525+00:00"
+  }
+}
