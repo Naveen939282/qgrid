@@ -27,4 +27,12 @@ jobs:
           pip install -r requirements.txt
 
       - name: Run tests
-        run: python -m pytest tests/ -q
+        run: |
+          python -m pytest tests/ -v --tb=long 2>&1 | tee /tmp/pytest_output.txt
+      - name: Upload test output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pytest-output
+          path: /tmp/pytest_output.txt
+          retention-days: 1
