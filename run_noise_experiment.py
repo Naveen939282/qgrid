@@ -82,6 +82,119 @@ def _get_version(module_name: str) -> str:
         return "unknown"
 
 
+def collect_provenance(seeds: list) -> dict:
+    """Collect runtime provenance information for reproducibility.
+
+    Uses only standard-library modules. Git metadata is retrieved
+    locally via subprocess (no network access); falls back to
+    ``"unknown"`` if unavailable. All package version lookups are
+    wrapped in try/except so provenance collection never crashes
+    the experiment.
+
+    Parameters
+    ----------
+    seeds : list
+        The list of random seeds used by the experiment.
+
+    Returns
+    -------
+    dict
+        Provenance information including git commit hash, Python
+        version, OS/platform, package versions, seed description,
+        Aer simulator configuration, and optimization configuration.
+    """
+    import sys
+    import platform
+
+    def _safe_version(module_name: str) -> str:
+        try:
+            mod = __import__(module_name)
+            return getattr(mod, "__version__", "unknown")
+        except Exception:
+            return "unknown"
+
+    # --- Git commit hash and working-tree status (retrieved locally, no network) ---
+    git_commit = "unknown"
+    git_working_tree_dirty = "unknown"
+    try:
+        import subprocess
+
+        # Git commit hash
+        result = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            git_commit = result.stdout.strip()
+
+        # Working tree status — detects both modified tracked files
+        # and untracked (non-ignored) files. `git diff --quiet` alone
+        # would miss untracked files, so `git status --porcelain` is
+        # used to capture the full set of changes.
+        status_result = subprocess.run(
+            ["git", "status", "--porcelain"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        if status_result.returncode == 0:
+            git_working_tree_dirty = bool(status_result.stdout.strip())
+        # If git status fails, git_working_tree_dirty stays "unknown"
+    except Exception:
+        pass  # git_commit and git_working_tree_dirty remain "unknown"
+
+    return {
+        "git_commit": git_commit,
+        "git_working_tree_dirty": git_working_tree_dirty,
+        "python_version": sys.version,
+        "os_platform": platform.platform(),
+        "package_versions": {
+            "qiskit": _safe_version("qiskit"),
+            "qiskit-aer": _safe_version("qiskit_aer"),
+            "numpy": _safe_version("numpy"),
+            "scipy": _safe_version("scipy"),
+            "pandas": _safe_version("pandas"),
+            "matplotlib": _safe_version("matplotlib"),
+            "ortools": _safe_version("ortools"),
+            "pytest": _safe_version("pytest"),
+        },
+        "random_seeds": {
+            "seeds": seeds,
+            "description": (
+                "Each trial seed controls COBYLA init params "
+                "(np.random.RandomState), StatevectorSampler during "
+                "parameter optimization, transpiler seed, and Aer "
+                "simulator seed. Identical seed used across all "
+                "noise conditions for paired comparisons."
+            ),
+        },
+        "aer_config": {
+            "simulator_type": "AerSimulator",
+            "method": "default (auto-selected by AerSimulator)",
+            "basis_gates": ["id", "rz", "sx", "x", "cx", "rzz", "measure"],
+            "noise_model_type": "depolarizing",
+            "noise_targets": {
+                "single_qubit": ["rz", "sx"],
+                "two_qubit": ["rzz", "cx"],
+            },
+            "optimization_level": 0,
+            "seed_transpiler": "per-trial (matches trial seed)",
+            "seed_simulator": "per-trial (matches trial seed)",
+        },
+        "optimization_config": {
+            "optimizer": "COBYLA",
+            "initial_params_method": "deterministic_init_params(p, seed)",
+            "sampler_for_optimization": "StatevectorSampler (noiseless)",
+            "noise_applied": (
+                "only during final Aer sampling, not during "
+                "parameter optimization"
+            ),
+        },
+    }
+
+
 def main():
     seeds = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
     p = 1
@@ -133,6 +246,8 @@ def main():
             "qiskit-aer": _get_version("qiskit_aer"),
         },
     }
+
+    config["provenance"] = collect_provenance(seeds)
 
     all_trial_records = []
     n_attempted = 0
