@@ -20,7 +20,12 @@ from qgrid.formulation import encode_qubo, decode_solution
 from qgrid.problem import AssignmentProblem, AssignmentSolution
 from qgrid.solvers.qaoa import solve_qaoa, _bitstring_to_vector
 from qgrid.solvers.enumeration import solve_exact
-from qiskit_aer.noise import NoiseModel, depolarizing_error
+
+# NOTE: qiskit_aer imports are deferred because qiskit-aer ships a compiled
+# extension (controller_wrappers.so) that may fail to load on certain Linux
+# distributions (e.g. Ubuntu 26.04) with "cannot allocate memory in static
+# TLS block" for the bundled libgomp.  The functions that need qiskit_aer
+# import it locally when called.
 
 
 def get_instances():
@@ -46,8 +51,16 @@ def deterministic_init_params(p: int, seed: int) -> np.ndarray:
     return rng.uniform(0, np.pi / 2, size=2 * p)
 
 
-def build_noise_model(p_depol: float) -> NoiseModel:
-    """Depolarizing noise model covering all transpiled basis gates."""
+def build_noise_model(p_depol: float) -> "NoiseModel":
+    """Depolarizing noise model covering all transpiled basis gates.
+
+    Imports qiskit_aer lazily so that callers who only need provenance
+    collection (which does not require qiskit_aer) are not blocked by
+    an ImportError on platforms where qiskit-aer's compiled extension
+    fails to load.
+    """
+    from qiskit_aer.noise import NoiseModel, depolarizing_error
+
     basis_gates = ["id", "rz", "sx", "x", "cx", "rzz", "measure"]
     noise = NoiseModel(basis_gates=basis_gates)
     noise.add_all_qubit_quantum_error(depolarizing_error(p_depol, 1), ["rz", "sx"])
