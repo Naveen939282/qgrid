@@ -603,7 +603,12 @@ def write_review_report(data, df, bootstrap_results, available, missing):
             il["frac_diff_ci"][0] * 100, il["frac_diff_ci"][1] * 100,
             il["gap_diff_ci"][0], il["gap_diff_ci"][1])
 
-    content += "\nBootstrap method: 10,000 iterations, resampling 6 instances with replacement.\n\n"
+    content += "\nBootstrap method: 10,000 iterations (seed=42, RANDOM_SEED). "
+    content += "The table above shows **instance-level** bootstrap CIs, which resample 6 "
+    content += "instances with replacement and account for the clustered design "
+    content += "(10 seeds nested within each instance). Trial-level bootstrap "
+    content += "(resampling individual trial observations, n=60) is also computed but "
+    content += "does not account for clustering and is exploratory only.\n\n"
 
     content += "## 5. Audit of Existing Paired Tests\n\n"
     content += "The existing statistical_comparisons.csv uses paired t-tests on 60 "
@@ -620,8 +625,9 @@ def write_review_report(data, df, bootstrap_results, available, missing):
     content += "Uses original assignment objective, NOT QUBO energy. All 240 match.\n\n"
     content += "**Nonzero gap trials:** {} of 240. Control has 3 nonzero; noisy 0-1.\n".format(
         len(df[df["objective_gap"].abs() > 0]))
-    content += "Negative gap difference not evidence noise improves performance; "
-    content += "driven by chance in a small sample.\n\n"
+    content += "Negative gap difference (noisy vs. noiseless) does not constitute "
+    content += "evidence that noise improves performance; with only 6 instances and "
+    content += "wide bootstrap CIs spanning zero, the observed pattern is uncertain.\n\n"
 
     content += "## 7. Reproducibility & Traceability\n\n"
     content += "### Available Metadata\n"
@@ -646,7 +652,7 @@ def write_review_report(data, df, bootstrap_results, available, missing):
     content += "- Feasible fraction unaffected by noise\n"
     content += "- Gaps remain near zero\n\n"
     content += "### 4. Conclusions Remaining Uncertain\n"
-    content += "- Systematic noise degradation (CIs include zero)\n"
+    content += "- Systematic noise effect on match rates (CIs span zero)\n"
     content += "- Hard-instance significance (n=6)\n"
     content += "- Generalization to other configs\n\n"
     content += "### 5. Recommended Wording\n\n```\n"
@@ -655,11 +661,16 @@ def write_review_report(data, df, bootstrap_results, available, missing):
     content += "Parameters were optimized with a noiseless StatevectorSampler; noise "
     content += "affected only the sampling step. Across 240 trials, all found feasible "
     content += "solutions, and 236/240 (98.3%) matched the exact optimum. Feasible "
-    content += "sample fractions showed no significant differences (paired t-tests, "
-    content += "all p>0.5; bootstrap 95% CIs include zero). Noiseless control achieved "
-    content += "lower match rates (80-95%) on hard 17-qubit instances. With only 6 "
-    content += "independent instances, power is limited. Results are simulator-specific "
-    content += "and do not constitute evidence of quantum advantage.\n```\n"
+    content += "sample fractions and optimum match rates were equal to or higher than "
+    content += "noiseless control in all noise conditions in these particular trials "
+    content += "(control: 95.0%; noise conditions: 98.3-100.0%). Paired t-tests on "
+    content += "60 trial-level observations yielded all p>0.5. Instance-level bootstrap "
+    content += "95% CIs for paired differences span zero; these CIs are uncertainty "
+    content += "estimates and do not prove the absence of an effect. With only 6 "
+    content += "independent instances (4 of 6 at ceiling), statistical power is limited. "
+    content += "Noise affected only final Aer sampling; results do not demonstrate "
+    content += "quantum advantage and are not generalizable beyond this simulator "
+    content += "configuration.\n```\n"
 
     with open(report_path, "w") as f:
         f.write(content)

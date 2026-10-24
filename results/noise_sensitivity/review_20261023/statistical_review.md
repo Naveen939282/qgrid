@@ -2,7 +2,7 @@
 
 **Dataset:** 20261023_122432_noise_experiment.json
 **Review directory:** results/noise_sensitivity/review_20261023
-**Generated:** 2026-10-23T16:36:08.263382
+**Generated:** 2026-10-24T16:45:55.017205
 
 ## Critical Disclosures
 
@@ -67,7 +67,7 @@ All 13 validation checks passed. The dataset is internally consistent.
 | p=0.05 | 0.06 | -0.0998 | 4.99 | [-0.80, 1.06] | [-0.2333, 0.0000] |
 | p=0.10 | 0.25 | -0.0666 | 3.33 | [-0.79, 1.42] | [-0.1333, 0.0000] |
 
-Bootstrap method: 10,000 iterations, resampling 6 instances with replacement.
+Bootstrap method: 10,000 iterations (seed=42, RANDOM_SEED). The table above shows **instance-level** bootstrap CIs, which resample 6 instances with replacement and account for the clustered design (10 seeds nested within each instance). Trial-level bootstrap (resampling individual trial observations, n=60) is also computed but does not account for clustering and is exploratory only.
 
 ## 5. Audit of Existing Paired Tests
 
@@ -87,7 +87,7 @@ Gaps verified: objective_gap = best_feasible_objective - exact_objective
 Uses original assignment objective, NOT QUBO energy. All 240 match.
 
 **Nonzero gap trials:** 4 of 240. Control has 3 nonzero; noisy 0-1.
-Negative gap difference not evidence noise improves performance; driven by chance in a small sample.
+Negative gap difference (noisy vs. noiseless) does not constitute evidence that noise improves performance; with only 6 instances and wide bootstrap CIs spanning zero, the observed pattern is uncertain.
 
 ## 7. Reproducibility & Traceability
 
@@ -134,12 +134,12 @@ No multiple comparison correction; conflates trial-level with instance-level inf
 - Gaps remain near zero
 
 ### 4. Conclusions Remaining Uncertain
-- Systematic noise degradation (CIs include zero)
+- Systematic noise effect on match rates (CIs span zero)
 - Hard-instance significance (n=6)
 - Generalization to other configs
 
 ### 5. Recommended Wording
 
 ```
-We evaluated QAOA on six Q-Grid assignment instances under depolarizing noise applied during final Aer sampling (p=0.0, 0.01, 0.05, 0.10). Parameters were optimized with a noiseless StatevectorSampler; noise affected only the sampling step. Across 240 trials, all found feasible solutions, and 236/240 (98.3%) matched the exact optimum. Feasible sample fractions showed no significant differences (paired t-tests, all p>0.5; bootstrap 95% CIs include zero). Noiseless control achieved lower match rates (80-95%) on hard 17-qubit instances. With only 6 independent instances, power is limited. Results are simulator-specific and do not constitute evidence of quantum advantage.
+We evaluated QAOA on six Q-Grid assignment instances under depolarizing noise applied during final Aer sampling (p=0.0, 0.01, 0.05, 0.10). Parameters were optimized with a noiseless StatevectorSampler; noise affected only the sampling step. Across 240 trials, all found feasible solutions, and 236/240 (98.3%) matched the exact optimum. Feasible sample fractions and optimum match rates were equal to or higher than noiseless control in all noise conditions in these particular trials (control: 95.0%; noise conditions: 98.3-100.0%). Paired t-tests on 60 trial-level observations yielded all p>0.5. Instance-level bootstrap 95% CIs for paired differences span zero; these CIs are uncertainty estimates and do not prove the absence of an effect. With only 6 independent instances (4 of 6 at ceiling), statistical power is limited. Noise affected only final Aer sampling; results do not demonstrate quantum advantage and are not generalizable beyond this simulator configuration.
 ```

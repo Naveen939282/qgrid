@@ -2,7 +2,7 @@
 
 **Dataset:** `results\noise_sensitivity\20261023_122432_noise_experiment.json`
 
-**Audit time:** 2026-10-23T15:47:47.460460
+**Audit time:** 2026-10-24T16:45:37.507094
 **Raw file unchanged:** YES (read-only)
 
 ## Summary

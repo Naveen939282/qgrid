@@ -171,7 +171,7 @@ python run_noise_experiment.py
 
 **Critical disclosure:** QUBO parameters are optimized with a noiseless StatevectorSampler. Noise is applied only during final Aer sampling. This does not study noisy optimization convergence and is not evidence of quantum advantage.
 
-Across 240 trials (6 instances x 4 noise conditions x 10 seeds), all trials found feasible solutions, and 236/240 (98.3%) matched the exact classical optimum. Noiseless control achieved lower match rates on harder 17-qubit instances (80-95%) vs. 100% for easy instances. Statistical review notes wide confidence intervals due to only 6 independent instances; CIs include zero for noise degradation effects.
+Across 240 trials (6 instances x 4 noise conditions x 10 seeds), all trials found feasible solutions, and 236/240 (98.3%) matched the exact classical optimum. Optimum match rates were equal to or higher than noiseless control in all noise conditions in these particular trials (control: 95.0%; p=0.01: 100.0%; p=0.05: 100.0%; p=0.10: 98.3%). Statistical review notes wide confidence intervals due to only 6 independent instances; CIs include zero, indicating no statistically significant effect of noise was detected.
 
 ### Statistical Review
 

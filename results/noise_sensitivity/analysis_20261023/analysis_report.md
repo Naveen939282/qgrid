@@ -3,7 +3,7 @@
 **Dataset:** 20261023_122432_noise_experiment.json
 **Analysis directory:** results\noise_sensitivity\analysis_20261023
 
-**Generated:** 2026-10-23T15:47:47.478624
+**Generated:** 2026-10-24T16:45:37.517315
 
 ## Critical Disclosures
 
@@ -57,8 +57,8 @@ Includes: parameter init, COBYLA optimization, circuit construction, transpilati
 ## Interpretation
 
 - Feasibility is robust across all noise levels.
-- Optimum match rate degrades for harder instances under noise.
-- Non-monotonic behavior observed (noise can occasionally help).
+- Optimum match rates were equal to or higher than noiseless control across all noise conditions in these particular trials.
+- Noise did not reduce optimum match rates compared to noiseless control in any condition.
 - Small sample size limits statistical power.
 
 ## Limitations
@@ -71,4 +71,4 @@ Includes: parameter init, COBYLA optimization, circuit construction, transpilati
 
 ## Conclusion
 
-The dataset is internally consistent. The experiment supports that depolarizing noise in final Aer sampling degrades QAOA solution quality for harder instances. Findings are specific to this simulator configuration.
+The dataset is internally consistent. Across 240 trials, all found feasible solutions, and 236/240 (98.3%) matched the exact optimum. Optimum match rates were equal to or higher than noiseless control in all noise conditions in these particular trials (descriptive, not causal). Four of six instances achieved 100% match in all conditions (ceiling effect). With only 6 independent instances, statistical power is limited. This experiment does not study noisy optimization convergence, does not prove noise is harmless, and findings are specific to this simulator configuration.

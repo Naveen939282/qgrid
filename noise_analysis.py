@@ -626,8 +626,8 @@ def write_analysis_report(df, pooled_df, stats_df):
             row["mean_runtime_sec"] or 0, row["median_runtime_sec"] or 0)
     content += "\n## Interpretation\n\n"
     content += "- Feasibility is robust across all noise levels.\n"
-    content += "- Optimum match rate degrades for harder instances under noise.\n"
-    content += "- Non-monotonic behavior observed (noise can occasionally help).\n"
+    content += "- Optimum match rates were equal to or higher than noiseless control across all noise conditions in these particular trials.\n"
+    content += "- Noise did not reduce optimum match rates compared to noiseless control in any condition.\n"
     content += "- Small sample size limits statistical power.\n\n"
     content += "## Limitations\n\n"
     content += "1. Parameters optimized noiselessly.\n"
@@ -636,9 +636,14 @@ def write_analysis_report(df, pooled_df, stats_df):
     content += "4. Aer simulator, not real hardware.\n"
     content += "5. Does not measure quantum advantage.\n\n"
     content += "## Conclusion\n\n"
-    content += "The dataset is internally consistent. The experiment supports that "
-    content += "depolarizing noise in final Aer sampling degrades QAOA solution quality "
-    content += "for harder instances. Findings are specific to this simulator configuration.\n"
+    content += "The dataset is internally consistent. Across 240 trials, all found feasible "
+    content += "solutions, and 236/240 (98.3%) matched the exact optimum. Optimum match "
+    content += "rates were equal to or higher than noiseless control in all noise conditions "
+    content += "in these particular trials (descriptive, not causal). Four of six instances "
+    content += "achieved 100% match in all conditions (ceiling effect). With only 6 "
+    content += "independent instances, statistical power is limited. This experiment does "
+    content += "not study noisy optimization convergence, does not prove noise is harmless, "
+    content += "and findings are specific to this simulator configuration.\n"
 
     with open(report_path, "w") as f:
         f.write(content)
