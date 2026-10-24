@@ -28,6 +28,7 @@ jobs:
 
       - name: Run tests
         run: |
+          set -o pipefail
           python -m pytest tests/ -v --tb=long 2>&1 | tee /tmp/pytest_output.txt
       - name: Upload test output
         if: always()
@@ -35,4 +36,4 @@ jobs:
         with:
           name: pytest-output
           path: /tmp/pytest_output.txt
-          retention-days: 1
+          retention-days: 3
