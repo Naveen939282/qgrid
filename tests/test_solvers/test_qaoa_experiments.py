@@ -7,7 +7,6 @@ import pytest
 from qgrid.formulation import encode_qubo, compute_qubo_energy, decode_solution
 from qgrid.problem import JobAssignmentInstance, AssignmentProblem, AssignmentSolution
 from qgrid.solvers.qaoa import solve_qaoa, _bitstring_to_vector
-from qiskit_aer.noise import NoiseModel, depolarizing_error
 
 
 @pytest.fixture
@@ -135,6 +134,8 @@ class TestAerSampler:
 
     def test_aer_with_noise_model(self, tiny_problem, tiny_qubo, deterministic_init_params):
         """Aer with noise model should run without error and produce samples."""
+        from qiskit_aer.noise import NoiseModel, depolarizing_error
+
         noise = NoiseModel(basis_gates=["id", "rz", "sx", "x", "cx", "rzz", "measure"])
         noise.add_all_qubit_quantum_error(depolarizing_error(0.01, 1), ["rz", "sx"])
         noise.add_all_qubit_quantum_error(depolarizing_error(0.02, 2), ["rzz", "cx"])
@@ -169,6 +170,7 @@ class TestAerSampler:
     def test_noise_model_gate_coverage(self):
         """Verify noise model covers all gates in the transpiled QAOA circuit."""
         from qiskit import transpile
+        from qiskit_aer.noise import NoiseModel, depolarizing_error
         from qgrid.solvers.qaoa import _build_param_circuit
         from qgrid.formulation import encode_qubo
 
@@ -213,6 +215,8 @@ class TestNoiseExperiment:
 
     def test_noise_model_creation(self):
         """Verify noise model is created with correct structure."""
+        from qiskit_aer.noise import NoiseModel, depolarizing_error
+
         basis_gates = ["id", "rz", "sx", "x", "cx", "rzz", "measure"]
         noise = NoiseModel(basis_gates=basis_gates)
         noise.add_all_qubit_quantum_error(depolarizing_error(0.01, 1), ["rz", "sx"])
@@ -222,6 +226,8 @@ class TestNoiseExperiment:
 
     def test_aer_runs_with_and_without_noise(self, tiny_problem, tiny_qubo, deterministic_init_params):
         """Verify Aer runs both with and without noise model."""
+        from qiskit_aer.noise import NoiseModel, depolarizing_error
+
         result_clean = solve_qaoa(
             tiny_problem, tiny_qubo,
             p=1, n_shots=128, maxiter=30,
@@ -337,6 +343,7 @@ class TestNoiseModelBasisGates:
     def test_transpiled_gate_coverage(self, tiny_qubo):
         """Transpiled QAOA circuit gates must be covered by noise model basis."""
         from qiskit import transpile
+        from qiskit_aer.noise import NoiseModel, depolarizing_error
         from qgrid.solvers.qaoa import _build_param_circuit
 
         qc, gammas, betas = _build_param_circuit(tiny_qubo, p=1, n_qubits=tiny_qubo.n_vars)
