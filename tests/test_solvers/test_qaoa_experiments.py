@@ -8,6 +8,18 @@ from qgrid.formulation import encode_qubo, compute_qubo_energy, decode_solution
 from qgrid.problem import JobAssignmentInstance, AssignmentProblem, AssignmentSolution
 from qgrid.solvers.qaoa import solve_qaoa, _bitstring_to_vector
 
+# Check if qiskit_aer is available at import time.  qiskit-aer ships a
+# compiled extension (controller_wrappers.so) that may fail to load on
+# certain Linux distributions when system libraries (libstdc++, gomp, etc.)
+# are incompatible.  In that case the import raises ImportError which we
+# catch here so that collection still succeeds and the dependent tests are
+# skipped rather than failing the entire suite.
+try:
+    import qiskit_aer  # noqa: F401
+    HAS_QISKIT_AER = True
+except ImportError:
+    HAS_QISKIT_AER = False
+
 
 @pytest.fixture
 def tiny_instance():
@@ -119,6 +131,8 @@ class TestFiniteShotExperiment:
 class TestAerSampler:
     """Tests for Aer-based sampling in QAOA."""
 
+    pytestmark = pytest.mark.skipif(not HAS_QISKIT_AER, reason="qiskit_aer not available")
+
     def test_aer_noiseless_valid(self, tiny_problem, tiny_qubo, deterministic_init_params):
         """Aer noiseless sampler should run without error and produce samples."""
         result = solve_qaoa(
@@ -212,6 +226,8 @@ class TestAerSampler:
 
 class TestNoiseExperiment:
     """Tests for noise model configuration and effects."""
+
+    pytestmark = pytest.mark.skipif(not HAS_QISKIT_AER, reason="qiskit_aer not available")
 
     def test_noise_model_creation(self):
         """Verify noise model is created with correct structure."""
@@ -339,6 +355,8 @@ class TestDecodeSolutionDuplicates:
 
 class TestNoiseModelBasisGates:
     """Tests verifying Aer noise model covers transpiled gate instructions."""
+
+    pytestmark = pytest.mark.skipif(not HAS_QISKIT_AER, reason="qiskit_aer not available")
 
     def test_transpiled_gate_coverage(self, tiny_qubo):
         """Transpiled QAOA circuit gates must be covered by noise model basis."""
