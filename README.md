@@ -142,15 +142,16 @@ python -m pytest tests/ -q
 
 Expected test counts vary by environment:
 
-- **Windows (Python 3.12)**: 204 passed, 0 skipped — all tests run locally.
-- **Ubuntu 24.04 (WSL)**: 204 passed, 0 skipped — all tests run locally.
-- **Ubuntu 26.04 (CI)**: 194 passed, 10 skipped — Qiskit Aer's compiled
+- **Windows (Python 3.12, local)**: 210 passed, 0 skipped — all tests run locally.
+- **Windows (GitHub Actions CI)**: 210 passed, 0 skipped in 49.34s.
+- **Ubuntu 24.04 (WSL)**: 204 passed, 0 skipped — previously documented local result; not reverified after the latest commit.
+- **Ubuntu 26.04 (CI)**: 200 passed, 10 skipped in 37.18s — Qiskit Aer's compiled
   extension fails to load on Ubuntu 26.04 (libgomp static TLS block error),
   so the 10 Aer-dependent tests are skipped. No tests fail.
 
 For the latest CI status, consult the GitHub Actions workflow. These are
 environment-specific results, not a universal guarantee that every environment
-runs all 204 tests.
+runs all 210 tests.
 
 ### Coverage (optional)
 
