@@ -8,6 +8,17 @@ Q-Grid is an open-source research project investigating how QAOA depth, constrai
 
 This project uses **local simulation only** — no paid APIs or quantum hardware.
 
+### QAOA Workflow in Q-Grid
+
+QAOA (Quantum Approximate Optimization Algorithm) is a hybrid classical-quantum
+variational algorithm. Q-Grid maps each QUBO instance to a parameterized quantum
+circuit (depth-p phase-separation and mixer Hamiltonians), then a classical
+optimizer (COBYLA, maxiter=50) tunes the circuit parameters (gamma, beta) by
+evaluating expected QUBO energy on a noiseless Qiskit `StatevectorSampler`.
+Once converged, the optimal circuit is sampled through Qiskit Aer (with or
+without depolarizing noise) to produce bitstring samples converted to feasible
+jobs-to-server assignments.
+
 ## Technical Stack
 
 - **Python 3.12** on Windows
@@ -174,6 +185,28 @@ python -m pytest tests/ -v --cov=qgrid --cov-report=term-missing
 
 ## Results and Experiments
 
+#### Experiment Design
+
+Six independent job-assignment instances (7–17 QUBO variables each) were
+evaluated across four sampling conditions (`noiseless_aer`, `p=0.01`,
+`p=0.05`, `p=0.10`) and ten seeds per instance-condition pair, yielding
+240 total trials. All 240 trials found feasible solutions, and 236/240 (98.3%)
+matched the exact classical optimum.
+
+#### Limitations and Statistical Caveats
+
+- **No quantum advantage established.** All results are from classical
+  simulation (Qiskit Aer). This work does not demonstrate quantum advantage,
+  a causal benefit from noise, scalability, or general noise robustness.
+- **Small instance set.** Only six independent instances were evaluated
+  (7–17 QUBO variables).
+- **Parameters optimized noiseless.** QAOA parameters were optimized using
+  a noiseless `StatevectorSampler`; noise was applied only during final Aer
+  sampling. This does not study noisy optimization convergence.
+- **Statistical uncertainty.** Bootstrap CIs are wide due to n=6 independent
+  instances; CIs include zero, indicating no statistically significant effect
+  of noise was detected.
+
 ### Benchmark Results
 
 The repository includes pre-computed benchmark results in results/benchmarks/. These contain exact optima, QUBO formulation metadata, solver comparisons, and per-trial runtime data.
@@ -239,6 +272,15 @@ pip install -r requirements.txt
 | run_benchmark.py | Single-instance benchmark comparison | results/benchmarks/ |
 | run_smoke_test.py | Smoke tests for noise model coverage | results/smoke_tests/ |
 | scripts/audit_qubo.py | Standalone QUBO energy convention auditor | Console output only |
+
+### Citation
+
+This project includes a `CITATION.cff` file with machine-readable citation
+metadata. If you use Q-Grid in your research, please cite:
+
+> Vasalli, N. *Q-Grid: Noise-Aware Quantum-Classical Optimization for
+> Energy-Efficient Data Center Job Assignment*. Version 0.1.0.
+> https://github.com/Naveen939282/qgrid
 
 ## License
 
