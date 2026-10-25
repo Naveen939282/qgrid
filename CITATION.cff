@@ -1,0 +1,18 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+type: software
+title: "Q-Grid"
+version: "0.1.0"
+license: MIT
+repository-code: https://github.com/Naveen939282/qgrid
+description: "Noise-Aware Quantum-Classical Optimization for Energy-Efficient Data Center Job Assignment"
+authors:
+  - name: "Q-Grid Contributors"
+keywords:
+  - quantum computing
+  - QAOA
+  - quantum approximate optimization algorithm
+  - job assignment
+  - constraint optimization
+  - quantum simulation
+  - noise sensitivity
