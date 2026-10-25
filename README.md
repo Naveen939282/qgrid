@@ -97,7 +97,9 @@ where $c_{ij}$ is the energy cost of assigning job $j$ to server $i$.
 
 ## Setup
 
-### Create and activate a virtual environment (Windows PowerShell)
+### Create and activate a virtual environment
+
+**Windows (PowerShell):**
 
 ```powershell
 # Create virtual environment
@@ -110,9 +112,19 @@ python -m venv .venv
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 ```
 
+**Linux / macOS (bash, zsh, or sh):**
+
+```bash
+# Create virtual environment
+python -m venv .venv
+
+# Activate
+source .venv/bin/activate
+```
+
 ### Install dependencies
 
-```powershell
+```bash
 # Pinned direct dependencies (recommended for exact reproducibility)
 pip install -r requirements.txt
 
@@ -124,11 +136,21 @@ pip install -e ".[dev]"
 
 The standard test command is:
 
-```powershell
+```bash
 python -m pytest tests/ -q
 ```
 
-Expected: 184 passed.
+Expected test counts vary by environment:
+
+- **Windows (Python 3.12)**: 204 passed, 0 skipped — all tests run locally.
+- **Ubuntu 24.04 (WSL)**: 204 passed, 0 skipped — all tests run locally.
+- **Ubuntu 26.04 (CI)**: 194 passed, 10 skipped — Qiskit Aer's compiled
+  extension fails to load on Ubuntu 26.04 (libgomp static TLS block error),
+  so the 10 Aer-dependent tests are skipped. No tests fail.
+
+For the latest CI status, consult the GitHub Actions workflow. These are
+environment-specific results, not a universal guarantee that every environment
+runs all 204 tests.
 
 ### Coverage (optional)
 

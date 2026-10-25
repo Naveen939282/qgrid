@@ -285,7 +285,12 @@ def check_reproducibility(data, df):
     print("\n--- Task 5: Reproducibility & Traceability ---")
 
     available = []
-    if "package_versions" in data:
+    # Prefer provenance.package_versions if present (full list), fall back to
+    # top-level package_versions (which may have fewer entries in older JSONs).
+    prov = data.get("provenance", {})
+    if "package_versions" in prov:
+        available.append("Package versions: {}".format(prov["package_versions"]))
+    elif "package_versions" in data:
         available.append("Package versions: {}".format(data["package_versions"]))
     if "seeds" in data:
         available.append("Seeds: {}".format(data["seeds"]))
@@ -301,18 +306,31 @@ def check_reproducibility(data, df):
         exact = df[df["instance_name"] == inst]["exact_objective"].iloc[0]
         available.append("Exact optimum {}: {}".format(inst, exact))
 
+    # Check for provenance-level git/python/os metadata (present in future runs)
+    if "git_commit" in prov:
+        available.append("Git commit: {}".format(prov["git_commit"]))
+    if "python_version" in prov:
+        available.append("Python version: {}".format(prov["python_version"]))
+    if "os_platform" in prov:
+        available.append("OS platform: {}".format(prov["os_platform"]))
+
     print("\n  Available metadata:")
     for item in available:
         print("    + {}".format(item))
 
-    missing = [
-        "Git commit hash / source code revision",
+    # Build dynamic missing list based on what provenance provides
+    missing = []
+    if "git_commit" not in prov:
+        missing.append("Git commit hash / source code revision")
+    if "python_version" not in prov and "python_version" not in data:
+        missing.append("Python version at experiment time")
+    if "os_platform" not in prov and "os_platform" not in data:
+        missing.append("OS / platform at experiment time")
+    missing.extend([
         "Numpy random state for StatevectorSampler",
-        "Python version at experiment time",
-        "OS / platform at experiment time",
         "CPU architecture (affects runtime, not results)",
         "Aer simulator seed transparency",
-    ]
+    ])
     print("\n  Missing reproducibility metadata:")
     for item in missing:
         print("    - {}".format(item))

@@ -91,7 +91,7 @@ def _get_version(module_name: str) -> str:
     try:
         mod = __import__(module_name)
         return getattr(mod, "__version__", "unknown")
-    except ImportError:
+    except Exception:
         return "unknown"
 
 
@@ -257,6 +257,12 @@ def main():
         "package_versions": {
             "qiskit": _get_version("qiskit"),
             "qiskit-aer": _get_version("qiskit_aer"),
+            "numpy": _get_version("numpy"),
+            "scipy": _get_version("scipy"),
+            "pandas": _get_version("pandas"),
+            "matplotlib": _get_version("matplotlib"),
+            "ortools": _get_version("ortools"),
+            "pytest": _get_version("pytest"),
         },
     }
 

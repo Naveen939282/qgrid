@@ -218,3 +218,73 @@ class TestGitWorkingTreeDirty:
 
         assert result["git_commit"] == "abc123" * 7
         assert result["git_working_tree_dirty"] == "unknown"
+
+    def test_provenance_contains_all_keys(self, provenance):
+        """Provenance dict contains all expected top-level keys."""
+        expected_keys = {
+            "git_commit",
+            "git_working_tree_dirty",
+            "python_version",
+            "os_platform",
+            "package_versions",
+            "random_seeds",
+            "aer_config",
+            "optimization_config",
+        }
+        assert expected_keys.issubset(set(provenance.keys()))
+
+    def test_package_versions_all_string_values(self, provenance):
+        """All package_version values are strings (str or 'unknown')."""
+        pv = provenance["package_versions"]
+        for pkg, version in pv.items():
+            assert isinstance(pkg, str)
+            assert isinstance(version, str)
+
+
+class TestVersionHandling:
+    """Tests for graceful handling of version metadata retrieval failures."""
+
+    def test_get_version_returns_unknown_on_import_error(self):
+        """_get_version returns 'unknown' for unimportable modules."""
+        from run_noise_experiment import _get_version
+        assert _get_version("nonexistent_module_xyz_12345") == "unknown"
+
+    def test_get_version_returns_unknown_on_non_import_error(self):
+        """_get_version returns 'unknown' for modules that raise non-ImportError.
+
+        Some packages may raise ValueError, RuntimeError, etc. during import
+        (e.g., due to native library issues). _get_version should handle all.
+        """
+        from run_noise_experiment import _get_version
+        # Mock __import__ to raise ValueError (not ImportError)
+        with patch("builtins.__import__", side_effect=ValueError("Simulated error")):
+            result = _get_version("qiskit")
+            assert result == "unknown"
+
+    def test_get_version_returns_actual_version(self):
+        """_get_version returns the actual __version__ for installed packages."""
+        from run_noise_experiment import _get_version
+        result = _get_version("numpy")
+        assert result != "unknown"
+        assert isinstance(result, str)
+
+    def test_collect_provenance_handles_version_failure(self):
+        """collect_provenance survives when a package raises a non-ImportError.
+
+        qiskit-aer on some platforms may raise ImportError (caught by both
+        _safe_version and _get_version). Other packages might raise
+        ValueError or RuntimeError. collect_provenance must not crash.
+        """
+        import builtins
+        real_import = builtins.__import__
+
+        def patched_import(name, *args, **kwargs):
+            if name == "qiskit_aer":
+                raise RuntimeError("Simulated native library failure")
+            return real_import(name, *args, **kwargs)
+
+        with patch("builtins.__import__", side_effect=patched_import):
+            from run_noise_experiment import collect_provenance
+            result = collect_provenance(seeds=[0])
+
+        assert result["package_versions"]["qiskit-aer"] == "unknown"
