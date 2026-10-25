@@ -7,7 +7,8 @@ license: MIT
 repository-code: https://github.com/Naveen939282/qgrid
 description: "Noise-Aware Quantum-Classical Optimization for Energy-Efficient Data Center Job Assignment"
 authors:
-  - name: "Q-Grid Contributors"
+  - family-names: "Vasalli"
+    given-names: "Naveendra"
 keywords:
   - quantum computing
   - QAOA
